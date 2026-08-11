@@ -46,7 +46,7 @@ function getActiveCinemaCandyConfig() {
 }
  
 function saveCandyConfig() {
- localStorage.setItem("candy_grid_configs", JSON.stringify(candyGridConfigs));
+  localStorage.setItem("candy_grid_configs", JSON.stringify(candyGridConfigs));
 }
  
 function getCandyTotalKg() {
@@ -75,37 +75,14 @@ function getCandyTotalKg() {
   return total;
 }
  
-function getCandyTotalKg() {
-  const cfg = getActiveCinemaCandyConfig();
-  let total = 0;
-  
-  // Calcolo griglia dinamica basata su selezione tara per cella
-  for(let r=0; r<cfg.rows; r++) {
-    for(let c=0; c<cfg.columns; c++) {
-      let val = n(cfg.gridValues[r]?.[c] || 0);
-      let taraIndex = cfg.gridTares[r]?.[c] ?? 0;
-      let tara = n(cfg.tareCaselle[taraIndex] || 0);
-      total += Math.max(0, val - tara);
-    }
-  }
-  
-  // Calcolo buste sciolte / kit
-  if (Array.isArray(cfg.buste)) {
-    cfg.buste.forEach(b => {
-      total += n(b.kg) + (n(b.sleeve) * 0.1);
-    });
-  }
-  return total;
-}
- 
 const $ = id => document.getElementById(id);
  
 document.addEventListener("DOMContentLoaded", () => {
- loadSetupFromStorage();
- loadCountsFromStorage();
- updateHeaderTitle();
+  loadSetupFromStorage();
+  loadCountsFromStorage();
+  updateHeaderTitle();
  
- $("magFile").addEventListener("change", e => {
+  $("magFile").addEventListener("change", e => {
     const f = e.target.files[0];
     if (!f) return;
     $("magStatus").textContent = "Lettura del report in corso...";
@@ -119,7 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
  
- $("sizeFile").addEventListener("change", e => {
+  $("sizeFile").addEventListener("change", e => {
     const f = e.target.files[0];
     if (!f) return;
     $("sizeStatus").textContent = "Lettura anagrafica in corso...";
@@ -133,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
  
- $("search").addEventListener("input", render);
+  $("search").addEventListener("input", render);
 });
  
 function toggleFilesSection() {
@@ -167,7 +144,7 @@ function loadCountsFromStorage() {
 }
  
 function saveCountsToStorage() {
- localStorage.setItem("inventory_counts", JSON.stringify(countsData));
+  localStorage.setItem("inventory_counts", JSON.stringify(countsData));
 }
  
 function resetCounts() {
@@ -193,7 +170,7 @@ function saveWarehousesSetup() {
     cinemaName = sel;
   }
  
- localStorage.setItem("cinema_info_name", cinemaName);
+  localStorage.setItem("cinema_info_name", cinemaName);
  
   const inputs = document.querySelectorAll(".wh-input-item");
   const newWh = [];
@@ -204,7 +181,7 @@ function saveWarehousesSetup() {
   if (newWh.length === 0) { alert("Inserisci almeno un magazzino!"); return; }
   
   warehouses = newWh;
- localStorage.setItem("cinema_warehouses", JSON.stringify(warehouses));
+  localStorage.setItem("cinema_warehouses", JSON.stringify(warehouses));
   
   updateHeaderTitle();
   currentTab = 0;
@@ -229,13 +206,13 @@ function renderSetupView() {
  
   const customOpt = document.createElement("option");
   customOpt.value = "__CUSTOM__";
- customOpt.textContent = "➕ Altro / Aggiungi nuovo cinema...";
+  customOpt.textContent = "➕ Altro / Aggiungi nuovo cinema...";
   if (!matched && cinemaName) {
     customOpt.selected = true;
-   $("customCinemaDiv").style.display = "block";
+    $("customCinemaDiv").style.display = "block";
     $("customCinemaInput").value = cinemaName;
   } else {
-   $("customCinemaDiv").style.display = "none";
+    $("customCinemaDiv").style.display = "none";
   }
   select.appendChild(customOpt);
   
@@ -317,7 +294,7 @@ function readMatrix(file, preferredSheetName = "") {
           const found = wb.SheetNames.find(s => norm(s).includes(norm(preferredSheetName)));
           if (found) sheetName = found;
         }
-       resolve(XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: "", raw: true }));
+        resolve(XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: "", raw: true }));
       } catch (x) { reject(x); }
     };
     r.onerror = () => reject(new Error("Errore nella lettura fisica del file."));
@@ -864,171 +841,18 @@ function updateCandyCell(b, r, c, val) {
   $("candyTotalDisplay").textContent = fmt(getCandyTotalKg());
 }
  
-function updateCandyDim() {
-  const cfg = getActiveCinemaCandyConfig();
-  cfg.columns = parseInt($("candyCols").value) || 22;
-  cfg.rows = parseInt($("candyRows").value) || 4;
-  saveCandyConfig();
-  renderCandyView();
-}
- 
 function updateCasellaTara(index, val) {
   const cfg = getActiveCinemaCandyConfig();
   cfg.tareCaselle[index] = n(val);
   saveCandyConfig();
   renderCandyView(); 
 }
- 
-function updateCellTaraSelection(r, c, taraIndex) {
+
+function updateCandyBuste(index, field, val) {
   const cfg = getActiveCinemaCandyConfig();
-  if (!cfg.gridTares[r]) cfg.gridTares[r] = {};
-  cfg.gridTares[r][c] = parseInt(taraIndex);
+  if (!Array.isArray(cfg.buste)) cfg.buste = Array(10).fill({kg: 0, sleeve: 0});
+  if (!cfg.buste[index]) cfg.buste[index] = {kg: 0, sleeve: 0};
+  cfg.buste[index][field] = n(val);
   saveCandyConfig();
   $("candyTotalDisplay").textContent = fmt(getCandyTotalKg());
-}
- 
-function updateCandyCell(r, c, val) {
-  const cfg = getActiveCinemaCandyConfig();
-  if(!cfg.gridValues[r]) cfg.gridValues[r] = {};
-  cfg.gridValues[r][c] = n(val);
-  saveCandyConfig();
-  $("candyTotalDisplay").textContent = fmt(getCandyTotalKg());
-}
- 
-function updateCandyBuste(idx, field, val) {
-  const cfg = getActiveCinemaCandyConfig();
-  if(!cfg.buste) cfg.buste = Array(10).fill({kg: 0, sleeve: 0});
-  if(!cfg.buste[idx]) cfg.buste[idx] = {kg: 0, sleeve: 0};
-  cfg.buste[idx][field] = n(val);
-  saveCandyConfig();
-  $("candyTotalDisplay").textContent = fmt(getCandyTotalKg());
-}
- 
-function renderMultiInput(whIdx, code, type, sizeVal) {
-  const c = getCount(whIdx, code);
-  const arr = c[type];
-  
-  let isDisabled = false;
-  if (type === 'box' || type === 'sleeve') {
-    isDisabled = !(sizeVal && sizeVal > 0);
-  }
- 
-  const disabledAttr = isDisabled ? 'disabled style="background-color: #e9ecef !important; color: #adb5bd !important; cursor: not-allowed;"' : '';
- 
-  let html = `<div class="input-scroll-cell" id="container-${code}-${type}">`;
-  arr.forEach((val, idx) => {
-    html += `<input type="number" step="any" min="0" class="qty-input" value="${val ? val : ''}" ${disabledAttr} oninput="handleInput(${whIdx}, '${code}', '${type}', ${idx}, this.value)">`;
-  });
- 
-  if (!isDisabled && arr.length < MAX_FIELDS) {
-    html += `<button type="button" class="btn btn-secondary" style="padding: 2px 6px; font-size: 0.8rem;" onclick="addInputField(${whIdx}, '${code}', '${type}')">＋</button>`;
-  }
-  html += `</div>`;
-  return html;
-}
- 
-function handleInput(whIdx, code, type, index, val) {
-  const c = getCount(whIdx, code);
-  c[type][index] = n(val);
-  saveCountsToStorage();
- 
-  const r = rows.find(x => x.code === code);
-  if (r) {
-    const newEff = getGlobalRilevato(code, r);
-    const newDiff = newEff - r.atteso;
-    const newDiffVal = newDiff * (r.standardCost || 0);
- 
-    const effEl = $(`eff-${code}`);
-    if (effEl) effEl.textContent = fmt(newEff);
- 
-    const diffEl = $(`diff-${code}`);
-    if (diffEl) {
-      diffEl.textContent = fmt(newDiff);
-      diffEl.className = `num cell-diff ${newDiff === 0 ? 'ok' : 'bad'}`;
-    }
- 
-    const valEl = $(`val-${code}`);
-    if (valEl) {
-      valEl.textContent = `€ ${fmtMoney(newDiffVal)}`;
-      valEl.className = `num grp-valore cell-val ${newDiffVal >= 0 ? 'ok' : 'bad'}`;
-    }
-  }
- 
-  recalcKPIs();
-}
- 
-function addInputField(whIdx, code, type) {
-  const c = getCount(whIdx, code);
-  if (c[type].length < MAX_FIELDS) {
-    c[type].push(0);
-    saveCountsToStorage();
-    render();
-  }
-}
- 
-function recalcKPIs() {
-  let totAtteso = 0;
-  let totRilevato = 0;
-  let totDiffValore = 0;
- 
-  rows.forEach(r => {
-    totAtteso += r.atteso;
-    const eff = getGlobalRilevato(r.code, r);
-    totRilevato += eff;
-    totDiffValore += (eff - r.atteso) * (r.standardCost || 0);
-  });
- 
-  const diffPezzi = totRilevato - totAtteso;
- 
-  $("kpiAtteso").textContent = fmt(totAtteso);
-  $("kpiRilevato").textContent = fmt(totRilevato);
-  $("kpiDiffPezzi").textContent = fmt(diffPezzi);
-  $("kpiDiffValore").textContent = `€ ${fmtMoney(totDiffValore)}`;
- 
-  const diffBox = $("kpiDiffBox");
-  if (diffBox) {
-    diffBox.className = `kpi-card ${diffPezzi === 0 ? 'success' : 'warning'}`;
-  }
-  const valBox = $("kpiValoreBox");
-  if (valBox) {
-    valBox.className = `kpi-card ${totDiffValore >= 0 ? 'success' : 'warning'}`;
-  }
-}
- 
-/* ---------------- EXPORT EXCEL ---------------- */
-function exportToExcel() {
-  if (!rows.length) { alert("Nessun dato da esportare."); return; }
- 
-  const exportData = [];
-  exportData.push([
-   "CODICE", "PRODOTTO", "U.M.", "INIZIALE", "DANNI", "VENDUTO", "ATTESO", 
-    "RILEVATO GLOBALE", "DIFFERENZA PEZZI", "COSTO UNIT.", "DIFFERENZA VALORE"
-  ]);
- 
-  rows.forEach(r => {
-    const rilevato = getGlobalRilevato(r.code, r);
-    const diff = rilevato - r.atteso;
-    const diffVal = diff * (r.standardCost || 0);
- 
-    exportData.push([
-      r.code,
-      r.name,
-      r.uom,
-      r.iniziale,
-      r.danni,
-      r.venduto,
-      r.atteso,
-      rilevato,
-      diff,
-      r.standardCost || 0,
-      diffVal
-    ]);
-  });
- 
-  const ws = XLSX.utils.aoa_to_sheet(exportData);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Inventario Totale");
-  
-  const safeName = cinemaName.replace(/[^a-zA-Z0-9]/g, "_");
-  XLSX.writeFile(wb, `Inventario_${safeName}.xlsx`);
 }
