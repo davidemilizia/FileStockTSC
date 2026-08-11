@@ -22,28 +22,57 @@ let candyGridConfigs = JSON.parse(localStorage.getItem("candy_grid_configs")) ||
  
 function getActiveCinemaCandyConfig() {
   if (!candyGridConfigs[cinemaName]) {
-    // Configurazione predefinita di default per ogni cinema
     candyGridConfigs[cinemaName] = {
-      columns: 22, 
+      columns: 4, 
       rows: 4, 
+      blocks: 1,
       tareCaselle: [0.37, 0.72, 0.50, 0.00],
       gridValues: {}, 
       gridTares: {},
       buste: Array(10).fill({kg: 0, sleeve: 0})
     };
   }
-  // Fallback di sicurezza se cambiano le strutture dati
+  if (!candyGridConfigs[cinemaName].blocks) candyGridConfigs[cinemaName].blocks = 1;
   if (!candyGridConfigs[cinemaName].tareCaselle) {
     candyGridConfigs[cinemaName].tareCaselle = [0.37, 0.72, 0.50, 0.00];
   }
   if (!candyGridConfigs[cinemaName].gridTares) {
     candyGridConfigs[cinemaName].gridTares = {};
   }
+  if (!candyGridConfigs[cinemaName].gridValues) {
+    candyGridConfigs[cinemaName].gridValues = {};
+  }
   return candyGridConfigs[cinemaName];
 }
  
 function saveCandyConfig() {
  localStorage.setItem("candy_grid_configs", JSON.stringify(candyGridConfigs));
+}
+ 
+function getCandyTotalKg() {
+  const cfg = getActiveCinemaCandyConfig();
+  let total = 0;
+  let numBlocks = cfg.blocks || 1;
+  
+  // Calcolo su tutti i blocchi della griglia
+  for(let b=0; b<numBlocks; b++) {
+    for(let r=0; r<cfg.rows; r++) {
+      for(let c=0; c<cfg.columns; c++) {
+        let val = n(cfg.gridValues[b]?.[r]?.[c] || 0);
+        let taraIndex = cfg.gridTares[b]?.[r]?.[c] ?? 0;
+        let tara = n(cfg.tareCaselle[taraIndex] || 0);
+        total += Math.max(0, val - tara);
+      }
+    }
+  }
+  
+  // Calcolo buste sciolte / kit
+  if (Array.isArray(cfg.buste)) {
+    cfg.buste.forEach(b => {
+      total += n(b.kg) + (n(b.sleeve) * 0.1);
+    });
+  }
+  return total;
 }
  
 function getCandyTotalKg() {
@@ -712,6 +741,7 @@ function render() {
  
 function renderCandyView() {
   const cfg = getActiveCinemaCandyConfig();
+  let numBlocks = cfg.blocks || 1;
   $("count").textContent = `Gestione Caramelle (${cinemaName})`;
   
   $("thead").innerHTML = `
@@ -721,13 +751,14 @@ function renderCandyView() {
   `;
  
   let html = `<tr><td style="padding: 20px; background: #f8f9fa;">
-    <!-- PARAMETRI GRIGLIA E TARE -->
+    <!-- PARAMETRI GRIGLIA, RIGHE, COLONNE E BLOCCHI -->
     <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 30px; align-items: center;">
       <div>
         <h4 style="color: #1a237e; margin-bottom: 8px;">Dimensioni Griglia</h4>
         <div style="display: flex; gap: 15px;">
           <label>Colonne: <input type="number" id="candyCols" value="${cfg.columns}" style="width: 60px; padding: 4px;" onchange="updateCandyDim()"></label>
           <label>Righe: <input type="number" id="candyRows" value="${cfg.rows}" style="width: 60px; padding: 4px;" onchange="updateCandyDim()"></label>
+          <label>Blocchi: <input type="number" id="candyBlocks" value="${numBlocks}" style="width: 60px; padding: 4px;" onchange="updateCandyDim()"></label>
         </div>
       </div>
       
@@ -748,38 +779,45 @@ function renderCandyView() {
       </div>
     </div>
  
-    <!-- GRIGLIA DI CONTEGGIO -->
-    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); overflow-x: auto;">
-      <h4 style="margin-bottom: 10px;">Inserimento Pesi Lordi & Selezione Tara</h4>
-      <table style="width:100%; border-collapse: collapse; margin-top: 10px;">
-        <thead>
-          <tr style="background: #343a40; color: white;">
-            <th style="padding: 8px; width: 80px;">Riga</th>`;
-  for(let c=0; c<cfg.columns; c++) {
-    html += `<th style="padding: 8px; text-align:center;">Col ${c+1}</th>`;
-  }
-  html += `</tr></thead><tbody>`;
- 
-  for(let r=0; r<cfg.rows; r++) {
-    html += `<tr>
-      <td style="background: #e9ecef; font-weight: bold; padding: 8px; text-align: center;">Riga ${r+1}</td>`;
+    <!-- GRIGLIE MULTIPLE IN ORIZZONTALE (BLOCCHI) -->
+    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+      <h4 style="margin-bottom: 15px;">Inserimento Pesi Lordi & Selezione Tara (per Blocco)</h4>
+      <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">`;
+
+  for(let b=0; b<numBlocks; b++) {
+    html += `
+        <div style="background: #f8f9fa; border: 1px solid #ced4da; border-radius: 6px; padding: 12px; overflow-x: auto; flex: 1; min-width: 280px;">
+          <h5 style="background: #343a40; color: white; padding: 8px; margin: -12px -12px 12px -12px; border-top-left-radius: 5px; border-top-right-radius: 5px; text-align: center;">Blocco ${b+1}</h5>
+          <table style="width:100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background: #495057; color: white;">
+                <th style="padding: 6px; width: 55px; font-size: 0.85rem;">Riga</th>`;
     for(let c=0; c<cfg.columns; c++) {
-      let val = cfg.gridValues[r]?.[c] || "";
-      let selectedTaraIdx = cfg.gridTares[r]?.[c] ?? 0;
-      html += `<td style="border: 1px solid #dee2e6; padding: 6px; text-align: center; min-width: 75px;">
-        <!-- Input Peso Lordo con placeholder forzato a vuoto -->
-        <input type="number" step="any" class="qty-input" value="${val}" placeholder="" style="width: 65px; font-size: 0.9rem; margin-bottom: 4px;" oninput="updateCandyCell(${r}, ${c}, this.value)">
-        <!-- Menu a tendina con Solo il Valore Numerico della Tara -->
-        <select style="width: 65px; font-size: 0.75rem; padding: 2px; border-radius: 3px; border: 1px solid #bbb;" onchange="updateCellTaraSelection(${r}, ${c}, this.value)">
-          ${[0, 1, 2, 3].map(i => `
-            <option value="${i}" ${selectedTaraIdx == i ? 'selected' : ''}>${cfg.tareCaselle[i] || 0}</option>
-          `).join('')}
-        </select>
-      </td>`;
+      html += `<th style="padding: 6px; text-align:center; font-size: 0.85rem;">Col ${c+1}</th>`;
     }
-    html += `</tr>`;
+    html += `</tr></thead><tbody>`;
+
+    for(let r=0; r<cfg.rows; r++) {
+      html += `<tr>
+        <td style="background: #e9ecef; font-weight: bold; padding: 6px; text-align: center; font-size: 0.85rem;">R${r+1}</td>`;
+      for(let c=0; c<cfg.columns; c++) {
+        let val = cfg.gridValues[b]?.[r]?.[c] || "";
+        let selectedTaraIdx = cfg.gridTares[b]?.[r]?.[c] ?? 0;
+        html += `<td style="border: 1px solid #dee2e6; padding: 4px; text-align: center; min-width: 65px;">
+          <input type="number" step="any" class="qty-input" value="${val}" placeholder="" style="width: 55px; font-size: 0.85rem; margin-bottom: 2px;" oninput="updateCandyCell(${b}, ${r}, ${c}, this.value)">
+          <select style="width: 55px; font-size: 0.75rem; padding: 2px; border-radius: 3px; border: 1px solid #bbb;" onchange="updateCellTaraSelection(${b}, ${r}, ${c}, this.value)">
+            ${[0, 1, 2, 3].map(i => `
+              <option value="${i}" ${selectedTaraIdx == i ? 'selected' : ''}>${cfg.tareCaselle[i] || 0}</option>
+            `).join('')}
+          </select>
+        </td>`;
+      }
+      html += `</tr>`;
+    }
+    html += `</tbody></table></div>`;
   }
-  html += `</tbody></table></div>`;
+
+  html += `</div></div>`;
  
   // Sezione buste sciolte
   html += `<div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px;">
@@ -797,6 +835,33 @@ function renderCandyView() {
   html += `</div></div></td></tr>`;
  
   $("tbody").innerHTML = html;
+}
+ 
+function updateCandyDim() {
+  const cfg = getActiveCinemaCandyConfig();
+  cfg.columns = parseInt($("candyCols").value) || 4;
+  cfg.rows = parseInt($("candyRows").value) || 4;
+  cfg.blocks = parseInt($("candyBlocks").value) || 1;
+  saveCandyConfig();
+  renderCandyView();
+}
+ 
+function updateCellTaraSelection(b, r, c, taraIndex) {
+  const cfg = getActiveCinemaCandyConfig();
+  if (!cfg.gridTares[b]) cfg.gridTares[b] = {};
+  if (!cfg.gridTares[b][r]) cfg.gridTares[b][r] = {};
+  cfg.gridTares[b][r][c] = parseInt(taraIndex);
+  saveCandyConfig();
+  $("candyTotalDisplay").textContent = fmt(getCandyTotalKg());
+}
+ 
+function updateCandyCell(b, r, c, val) {
+  const cfg = getActiveCinemaCandyConfig();
+  if (!cfg.gridValues[b]) cfg.gridValues[b] = {};
+  if (!cfg.gridValues[b][r]) cfg.gridValues[b][r] = {};
+  cfg.gridValues[b][r][c] = n(val);
+  saveCandyConfig();
+  $("candyTotalDisplay").textContent = fmt(getCandyTotalKg());
 }
  
 function updateCandyDim() {
