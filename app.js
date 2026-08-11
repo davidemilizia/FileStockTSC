@@ -741,7 +741,7 @@ function render() {
  
 function renderCandyView() {
   const cfg = getActiveCinemaCandyConfig();
-  let numBlocks = cfg.blocks || 1;
+  let numBlocks = parseInt(cfg.blocks) || 1;
   $("count").textContent = `Gestione Caramelle (${cinemaName})`;
   
   $("thead").innerHTML = `
@@ -841,7 +841,7 @@ function updateCandyDim() {
   const cfg = getActiveCinemaCandyConfig();
   cfg.columns = parseInt($("candyCols").value) || 4;
   cfg.rows = parseInt($("candyRows").value) || 4;
-  cfg.blocks = parseInt($("candyBlocks").value) || 1;
+  cfg.blocks = Math.max(1, parseInt($("candyBlocks").value) || 1);
   saveCandyConfig();
   renderCandyView();
 }
