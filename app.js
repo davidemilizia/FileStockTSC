@@ -818,7 +818,11 @@ function updateCandyDim() {
   const cfg = getActiveCinemaCandyConfig();
   cfg.columns = parseInt($("candyCols").value) || 4;
   cfg.rows = parseInt($("candyRows").value) || 4;
-  cfg.blocks = Math.max(1, parseInt($("candyBlocks").value) || 1);
+  
+  // Legge il valore in modo sicuro forzando un minimo di 1
+  let blocksInput = parseInt($("candyBlocks").value);
+  cfg.blocks = (isNaN(blocksInput) || blocksInput < 1) ? 1 : blocksInput;
+  
   saveCandyConfig();
   renderCandyView();
 }
