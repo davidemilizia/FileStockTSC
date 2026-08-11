@@ -767,12 +767,12 @@ function renderCandyView() {
       let val = cfg.gridValues[r]?.[c] || "";
       let selectedTaraIdx = cfg.gridTares[r]?.[c] ?? 0;
       html += `<td style="border: 1px solid #dee2e6; padding: 6px; text-align: center; min-width: 75px;">
-        <!-- Input Peso Lordo -->
-        <input type="number" step="any" class="qty-input" value="${val}" style="width: 65px; font-size: 0.9rem; margin-bottom: 4px;" placeholder="Lordo" oninput="updateCandyCell(${r}, ${c}, this.value)">
-        <!-- Menu a tendina selezione Tara -->
+        <!-- Input Peso Lordo senza placeholder -->
+        <input type="number" step="any" class="qty-input" value="${val}" style="width: 65px; font-size: 0.9rem; margin-bottom: 4px;" oninput="updateCandyCell(${r}, ${c}, this.value)">
+        <!-- Menu a tendina con solo il valore della tara -->
         <select style="width: 65px; font-size: 0.75rem; padding: 2px; border-radius: 3px; border: 1px solid #bbb;" onchange="updateCellTaraSelection(${r}, ${c}, this.value)">
           ${[0, 1, 2, 3].map(i => `
-            <option value="${i}" ${selectedTaraIdx == i ? 'selected' : ''}>T${i+1} (${cfg.tareCaselle[i]})</option>
+            <option value="${i}" ${selectedTaraIdx == i ? 'selected' : ''}>${cfg.tareCaselle[i]}</option>
           `).join('')}
         </select>
       </td>`;
