@@ -105,7 +105,7 @@ function savePostMixConfig() {
 
 function getPostMixProductTotals() {
   const cfg = getActiveCinemaPostMixConfig();
-  let totals = {}; // prodName -> total Kg
+  let totals = {}; 
   
   if (cfg.blocks && Array.isArray(cfg.blocks)) {
     cfg.blocks.forEach(block => {
@@ -118,7 +118,6 @@ function getPostMixProductTotals() {
             let weight = n(cellData.weight || 0);
             let prodName = cellData.prodName;
             
-            // Trova la tara fissa del prodotto
             let pmItem = postMixProducts.find(p => p.name === prodName);
             let taraVal = pmItem ? n(pmItem.tara) : 0;
             
@@ -416,7 +415,7 @@ function parseMag(m) {
 function parseSize(m) {
   const sizeOut = [];
   const postMixOut = [];
-  let section = "SIZE"; // SIZE, KIT, POSTMIX
+  let section = "SIZE"; 
 
   for (let i = 0; i < m.length; i++) {
     const r = m[i];
@@ -610,12 +609,10 @@ function getGlobalRilevato(code, r) {
   
   let basePezzi = (totBox * r.boxSize) + (totSleeve * r.sleeveSize) + totSfuso;
   
-  // Aggiunta Caramelle Aermont
   if (norm(r.name).includes("CARAMELLE") && norm(r.name).includes("AERMONT")) {
     basePezzi += getCandyTotalKg();
   }
 
-  // Aggiunta Post Mix
   const postMixTotals = getPostMixProductTotals();
   const cleanStr = str => norm(str).replace(/[^A-Z0-9]/g, "");
   const rNameClean = cleanStr(r.name);
@@ -803,11 +800,14 @@ function renderCandyView() {
       html += `<tr><td style="background: #e9ecef; font-weight: bold; padding: 6px; font-size: 0.85rem;">Riga ${r+1}</td>`;
       for(let c=0; c<cols; c++) {
         let cellData = block.gridValues?.[r]?.[c] || { weight: "", taraIdx: 0 };
-        html += `<td style="border: 1px solid #dee2e6; padding: 4px; text-align: center; background: #fafafa;">
-          <div style="display: flex; flex-direction: column; gap: 3px;">
-            <input type="number" step="any" placeholder="Kg" value="${cellData.weight ?? ""}" style="width: 55px; padding: 2px; text-align: center; margin: 0 auto;" onchange="updateCandyCell(${bIndex}, ${r}, ${c}, 'weight', this.value)">
+        let weightVal = cellData.weight ?? "";
+        let taraIdx = cellData.taraIdx ?? 0;
+
+        html += `<td style="border: 1px solid #dee2e6; padding: 6px; text-align: center; background: #fafafa;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <input type="number" step="any" placeholder="Kg" value="${weightVal}" style="width: 60px; padding: 3px; text-align: center; margin: 0 auto;" onchange="updateCandyCell(${bIndex}, ${r}, ${c}, 'weight', this.value)">
             <select style="font-size: 0.7rem; padding: 2px; border-radius: 3px; border: 1px solid #ccc;" onchange="updateCandyCell(${bIndex}, ${r}, ${c}, 'taraIdx', this.value)">
-              ${[0, 1, 2, 3].map(t => `<option value="${t}" ${(cellData.taraIdx ?? 0) === t ? 'selected' : ''}>T${t+1} (${cfg.tares[t] ?? 0}kg)</option>`).join('')}
+              ${[0, 1, 2, 3].map(ti => `<option value="${ti}" ${taraIdx === ti ? 'selected' : ''}>T${ti+1} (${cfg.tares[ti]}kg)</option>`).join('')}
             </select>
           </div>
         </td>`;
@@ -818,23 +818,42 @@ function renderCandyView() {
   }
   html += `</div>`;
 
-  // Buste Sciolte Caramelle
-  html += `<div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px;">
-    <h4>📦 Buste / Sacchetti Sciolti</h4>
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-top: 10px;">`;
-  for(let i=0; i<10; i++) {
-    let b = cfg.buste?.[i] || {kg: 0, sleeve: 0};
-    html += `<div style="background: #f1f3f5; padding: 10px; border-radius: 6px;">
-      <strong>Elemento ${i+1}</strong><br>
-      Kg: <input type="number" step="any" value="${b.kg || ''}" style="width:70px;" onchange="updateCandyBuste(${i}, 'kg', this.value)"><br>
-      Sleeve: <input type="number" step="any" value="${b.sleeve || ''}" style="width:70px; margin-top:4px;" onchange="updateCandyBuste(${i}, 'sleeve', this.value)">
-    </div>`;
-  }
-  html += `</div></div></td></tr>`;
+  // Sezione Buste Caramelle
+  html += `
+    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+      <h3 style="margin: 0 0 15px 0; color: #333;">📦 Conteggio Buste / Sleeve Caramelle</h3>
+      <div style="overflow-x: auto;">
+        <table style="width:100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background: #343a40; color: white;">
+              <th style="padding: 8px;">Posizione / Busta</th>
+              <th style="padding: 8px; text-align: center;">Chili Sfusi (Kg)</th>
+              <th style="padding: 8px; text-align: center;">Sleeve Pene/Buste</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${cfg.buste.map((b, idx) => `
+              <tr>
+                <td style="background: #e9ecef; font-weight: bold; padding: 6px; font-size: 0.85rem;">Busta ${idx+1}</td>
+                <td style="border: 1px solid #dee2e6; padding: 6px; text-align: center;">
+                  <input type="number" step="any" value="${b.kg || 0}" style="width: 90px; padding: 4px; text-align: center;" onchange="updateCandyBusta(${idx}, 'kg', this.value)">
+                </td>
+                <td style="border: 1px solid #dee2e6; padding: 6px; text-align: center;">
+                  <input type="number" step="any" value="${b.sleeve || 0}" style="width: 90px; padding: 4px; text-align: center;" onchange="updateCandyBusta(${idx}, 'sleeve', this.value)">
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  html += `</td></tr>`;
   $("tbody").innerHTML = html;
 }
 
-/* --- RENDER MAGAZZINO POST MIX --- */
+/* --- RENDER SCHERMATA POST MIX --- */
 function renderPostMixView() {
   const cfg = getActiveCinemaPostMixConfig();
   const totals = getPostMixProductTotals();
@@ -847,7 +866,7 @@ function renderPostMixView() {
       <div>
         <h3 style="margin: 0; color: #333;">Totale Netti Post Mix per Prodotto</h3>
         <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
-          ${postMixProducts.length === 0 ? '<span style="color:#d32f2f;">⚠️ Nessun prodotto Post Mix trovato nel file SIZE (aggiungi la sezione POSTMIX).</span>' : ''}
+          ${postMixProducts.length === 0 ? '<span style="color:#d32f2f;">⚠️ Nessun prodotto Post Mix trovato. Assicurati di caricare il file SIZE con il foglio POSTMIX.</span>' : ''}
           ${postMixProducts.map(p => `
             <div style="background: #e3f2fd; padding: 6px 12px; border-radius: 6px; font-size: 0.9rem;">
               <strong>${esc(p.name)}:</strong> <span style="color: #0d47a1; font-weight: bold;">${fmt(totals[p.name] || 0)} Kg</span>
@@ -926,18 +945,76 @@ function renderPostMixView() {
   $("tbody").innerHTML = html;
 }
 
-/* --- UPDATE HANDLERS CANDY --- */
-function updateCandyBlocksCount(val) { getActiveCinemaCandyConfig().blocksCount = parseInt(val) || 1; saveCandyConfig(); renderCandyView(); }
-function updateCandyOrientation(val) { getActiveCinemaCandyConfig().orientation = val; saveCandyConfig(); renderCandyView(); }
-function updateCandyTaraVal(taraIdx, val) {
-  let cfg = getActiveCinemaCandyConfig();
-  if(!cfg.tares) cfg.tares = [0.37, 0.72, 0.50, 1.00];
-  cfg.tares[taraIdx] = n(val);
-  saveCandyConfig();
-  renderCandyView();
+/* --- FUNZIONI DI SUPPORTO PER INPUT MULTI-CAMPO E AGGIORNAMENTO CARAMELLE/POSTMIX --- */
+function renderMultiInput(whIdx, code, fieldType, unitSize) {
+  const c = getCount(whIdx, code);
+  const arr = c[fieldType] || [0];
+  
+  return arr.map((val, idx) => `
+    <div style="display: inline-flex; align-items: center; gap: 4px; margin: 2px;">
+      <input type="number" step="any" value="${val || ''}" style="width: 60px; padding: 3px; text-align: center;" 
+             oninput="updateCountField(${whIdx}, '${code}', '${fieldType}', ${idx}, this.value)">
+    </div>
+  `).join('') + `
+    <button onclick="addCountField(${whIdx}, '${code}', '${fieldType}')" style="padding: 2px 6px; font-size: 0.75rem; cursor:pointer;" title="Aggiungi campo">+</button>
+  `;
 }
+
+function updateCountField(whIdx, code, fieldType, idx, val) {
+  const c = getCount(whIdx, code);
+  c[fieldType][idx] = n(val);
+  saveCountsToStorage();
+  
+  const r = rows.find(x => x.code === code);
+  if (r) {
+    const eff = getGlobalRilevato(code, r);
+    const diff = eff - r.atteso;
+    const diffVal = diff * (r.standardCost || 0);
+    
+    const effEl = document.getElementById(`eff-${code}`);
+    const diffEl = document.getElementById(`diff-${code}`);
+    const valEl = document.getElementById(`val-${code}`);
+    
+    if (effEl) effEl.textContent = fmt(eff);
+    if (diffEl) {
+      diffEl.textContent = fmt(diff);
+      diffEl.className = `num cell-diff ${diff === 0 ? 'ok' : 'bad'}`;
+    }
+    if (valEl) {
+      valEl.textContent = `€ ${fmtMoney(diffVal)}`;
+      valEl.className = `num grp-valore cell-val ${diffVal >= 0 ? 'ok' : 'bad'}`;
+    }
+  }
+  recalcKPIs();
+}
+
+function addCountField(whIdx, code, fieldType) {
+  const c = getCount(whIdx, code);
+  c[fieldType].push(0);
+  saveCountsToStorage();
+  render();
+}
+
+function recalcKPIs() {
+  let totAtteso = 0, totRilevato = 0, totDiffValore = 0;
+  rows.forEach(r => {
+    totAtteso += r.atteso;
+    const eff = getGlobalRilevato(r.code, r);
+    totRilevato += eff;
+    totDiffValore += (eff - r.atteso) * (r.standardCost || 0);
+  });
+  if ($("kpiAtteso")) $("kpiAtteso").textContent = fmt(totAtteso);
+  if ($("kpiRilevato")) $("kpiRilevato").textContent = fmt(totRilevato);
+  if ($("kpiValore")) $("kpiValore").textContent = `€ ${fmtMoney(totDiffValore)}`;
+}
+
+// Handler specifici configurazioni Caramelle
+function updateCandyBlocksCount(val) { getActiveCinemaCandyConfig().blocksCount = parseInt(val) || 2; saveCandyConfig(); renderCandyView(); }
+function updateCandyOrientation(val) { getActiveCinemaCandyConfig().orientation = val; saveCandyConfig(); renderCandyView(); }
+function updateCandyTaraVal(idx, val) { getActiveCinemaCandyConfig().tares[idx] = n(val); saveCandyConfig(); renderCandyView(); }
 function updateCandyBlockName(bIndex, val) { getActiveCinemaCandyConfig().blocks[bIndex].name = val; saveCandyConfig(); }
 function updateCandyBlockDim(bIndex, field, val) {
+  getActiveCinemaPostMixConfig(); // mantiene coerenza
   getActiveCinemaCandyConfig().blocks[bIndex][field] = parseInt(val) || 1;
   saveCandyConfig();
   renderCandyView();
@@ -952,15 +1029,15 @@ function updateCandyCell(bIndex, r, c, subField, val) {
   saveCandyConfig();
   renderCandyView();
 }
-function updateCandyBuste(idx, field, val) {
+function updateCandyBusta(idx, field, val) {
   let cfg = getActiveCinemaCandyConfig();
-  if(!cfg.buste) cfg.buste = Array(10).fill({kg: 0, sleeve: 0});
   if(!cfg.buste[idx]) cfg.buste[idx] = {kg: 0, sleeve: 0};
   cfg.buste[idx][field] = n(val);
   saveCandyConfig();
+  renderCandyView();
 }
 
-/* --- UPDATE HANDLERS POST MIX --- */
+// Handler specifici configurazioni Post Mix
 function updatePostMixBlocksCount(val) { getActiveCinemaPostMixConfig().blocksCount = parseInt(val) || 1; savePostMixConfig(); renderPostMixView(); }
 function updatePostMixOrientation(val) { getActiveCinemaPostMixConfig().orientation = val; savePostMixConfig(); renderPostMixView(); }
 function updatePostMixBlockName(bIndex, val) { getActiveCinemaPostMixConfig().blocks[bIndex].name = val; savePostMixConfig(); }
@@ -978,96 +1055,4 @@ function updatePostMixCell(bIndex, r, c, subField, val) {
   else if (subField === 'prodName') cfg.blocks[bIndex].gridValues[r][c].prodName = val;
   savePostMixConfig();
   renderPostMixView();
-}
-
-function renderMultiInput(whIdx, code, type, sizeVal) {
-  const c = getCount(whIdx, code);
-  const arr = c[type];
-  let isDisabled = (type === 'box' || type === 'sleeve') && !(sizeVal && sizeVal > 0);
-  const disabledAttr = isDisabled ? 'disabled style="background-color: #e9ecef !important; color: #adb5bd !important; cursor: not-allowed;"' : '';
-
-  let html = `<div class="input-scroll-cell" id="container-${code}-${type}">`;
-  arr.forEach((val, idx) => {
-    html += `<input type="number" step="any" min="0" class="qty-input" value="${val ? val : ''}" ${disabledAttr} oninput="handleInput(${whIdx}, '${code}', '${type}', ${idx}, this.value)">`;
-  });
-  if (!isDisabled && arr.length < MAX_FIELDS) {
-    html += `<button type="button" class="btn btn-secondary" style="padding: 2px 6px; font-size: 0.8rem;" onclick="addInputField(${whIdx}, '${code}', '${type}')">＋</button>`;
-  }
-  html += `</div>`;
-  return html;
-}
-
-function handleInput(whIdx, code, type, index, val) {
-  const c = getCount(whIdx, code);
-  c[type][index] = n(val);
-  saveCountsToStorage();
-
-  const r = rows.find(x => x.code === code);
-  if (r) {
-    const newEff = getGlobalRilevato(code, r);
-    const newDiff = newEff - r.atteso;
-    const newDiffVal = newDiff * (r.standardCost || 0);
-
-    const effEl = $(`eff-${code}`);
-    if (effEl) effEl.textContent = fmt(newEff);
-    const diffEl = $(`diff-${code}`);
-    if (diffEl) {
-      diffEl.textContent = fmt(newDiff);
-      diffEl.className = `num cell-diff ${newDiff === 0 ? 'ok' : 'bad'}`;
-    }
-    const valEl = $(`val-${code}`);
-    if (valEl) {
-      valEl.textContent = `€ ${fmtMoney(newDiffVal)}`;
-      valEl.className = `num grp-valore cell-val ${newDiffVal >= 0 ? 'ok' : 'bad'}`;
-    }
-  }
-  recalcKPIs();
-}
-
-function addInputField(whIdx, code, type) {
-  const c = getCount(whIdx, code);
-  if (c[type].length < MAX_FIELDS) {
-    c[type].push(0);
-    saveCountsToStorage();
-    render();
-  }
-}
-
-function recalcKPIs() {
-  let totAtteso = 0, totRilevato = 0, totDiffValore = 0;
-  rows.forEach(r => {
-    totAtteso += r.atteso;
-    const eff = getGlobalRilevato(r.code, r);
-    totRilevato += eff;
-    totDiffValore += (eff - r.atteso) * (r.standardCost || 0);
-  });
-  const diffPezzi = totRilevato - totAtteso;
-
-  $("kpiAtteso").textContent = fmt(totAtteso);
-  $("kpiRilevato").textContent = fmt(totRilevato);
-  $("kpiDiffPezzi").textContent = fmt(diffPezzi);
-  $("kpiDiffValore").textContent = `€ ${fmtMoney(totDiffValore)}`;
-}
-
-/* ---------------- EXPORT EXCEL ---------------- */
-function exportToExcel() {
-  if (!rows.length) { alert("Nessun dato da esportare."); return; }
-  const exportData = [];
-  exportData.push([
-    "CODICE", "PRODOTTO", "U.M.", "INIZIALE", "DANNI", "VENDUTO", "ATTESO", 
-    "RILEVATO GLOBALE", "DIFFERENZA PEZZI", "COSTO UNIT.", "DIFFERENZA VALORE"
-  ]);
-
-  rows.forEach(r => {
-    const rilevato = getGlobalRilevato(r.code, r);
-    const diff = rilevato - r.atteso;
-    const diffVal = diff * (r.standardCost || 0);
-    exportData.push([r.code, r.name, r.uom, r.iniziale, r.danni, r.venduto, r.atteso, rilevato, diff, r.standardCost || 0, diffVal]);
-  });
-
-  const ws = XLSX.utils.aoa_to_sheet(exportData);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Inventario Totale");
-  const safeName = cinemaName.replace(/[^a-zA-Z0-9]/g, "_");
-  XLSX.writeFile(wb, `Inventario_${safeName}.xlsx`);
 }
