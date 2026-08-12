@@ -23,21 +23,22 @@ let candyGridConfigs = JSON.parse(localStorage.getItem("candy_grid_configs")) ||
 function getActiveCinemaCandyConfig() {
   if (!candyGridConfigs[cinemaName]) {
     candyGridConfigs[cinemaName] = {
+      blocksCount: 2,
+      orientation: "vertical",
+      tares: [0.37, 0.72, 0.50, 1.00],
       blocks: [
         {
-          id: "espositore",
+          id: "block_0",
           name: "🍬 Espositore Principale",
           columns: 22,
           rows: 2,
-          taraBins: [0.37, 0.72],
           gridValues: {}
         },
         {
-          id: "scorte",
+          id: "block_1",
           name: "📦 Scorte / Magazzino",
           columns: 10,
           rows: 2,
-          taraBins: [0.50, 0.50],
           gridValues: {}
         }
       ],
@@ -45,26 +46,14 @@ function getActiveCinemaCandyConfig() {
     };
   }
   
-  // Controllo di sicurezza per evitare che manchino proprietà nei dati salvati in precedenza
   let cfg = candyGridConfigs[cinemaName];
-  if (!cfg.blocks || !Array.isArray(cfg.blocks) || cfg.blocks.length === 0) {
+  if (cfg.blocksCount === undefined) cfg.blocksCount = cfg.blocks ? cfg.blocks.length : 2;
+  if (!cfg.orientation) cfg.orientation = "vertical";
+  if (!cfg.tares || !Array.isArray(cfg.tares)) cfg.tares = [0.37, 0.72, 0.50, 1.00];
+  if (!cfg.blocks || !Array.isArray(cfg.blocks)) {
     cfg.blocks = [
-      {
-        id: "espositore",
-        name: "🍬 Espositore Principale",
-        columns: 22,
-        rows: 2,
-        taraBins: [0.37, 0.72],
-        gridValues: {}
-      },
-      {
-        id: "scorte",
-        name: "📦 Scorte / Magazzino",
-        columns: 10,
-        rows: 2,
-        taraBins: [0.50, 0.50],
-        gridValues: {}
-      }
+      { id: "block_0", name: "🍬 Espositore Principale", columns: 22, rows: 2, gridValues: {} },
+      { id: "block_1", name: "📦 Scorte / Magazzino", columns: 10, rows: 2, gridValues: {} }
     ];
   }
   if (!cfg.buste || !Array.isArray(cfg.buste)) {
@@ -88,9 +77,13 @@ function getCandyTotalKg() {
       let colsCount = parseInt(block.columns) || 0;
       for(let r=0; r<rowsCount; r++) {
         for(let c=0; c<colsCount; c++) {
-          let val = n(block.gridValues?.[r]?.[c] || 0);
-          let tara = n(block.taraBins?.[r] || 0);
-          total += Math.max(0, val - tara);
+          let cellData = block.gridValues?.[r]?.[c];
+          if (cellData) {
+            let weight = n(cellData.weight || 0);
+            let taraIdx = parseInt(cellData.taraIdx) || 0;
+            let taraVal = n(cfg.tares[taraIdx] || 0);
+            total += Math.max(0, weight - taraVal);
+          }
         }
       }
     });
@@ -757,58 +750,106 @@ function renderCandyView() {
 
   let html = `<tr><td style="padding: 20px; background: #f8f9fa;">`;
 
+  // Sezione superiore: Totale, 4 Tare, Numero Blocchi, Orientamento
   html += `
-    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: center;">
       <div>
         <h3 style="margin: 0; color: #333;">Totale Generale Caramelle</h3>
-        <small style="color: #666;">Somma di tutti i blocchi e delle buste sciolte</small>
+        <div style="font-size: 1.5rem; font-weight: bold; color: #0d47a1; margin-top: 5px;">${fmt(getCandyTotalKg())} Kg</div>
       </div>
-      <div style="font-size: 1.5rem; font-weight: bold; color: #0d47a1;">${fmt(getCandyTotalKg())} Kg</div>
+
+      <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+        <div>
+          <label style="font-size: 0.85rem; font-weight: bold; display: block; color: #555;">N. Blocchi</label>
+          <select style="padding: 6px; border-radius: 4px; border: 1px solid #ccc;" onchange="updateCandyBlocksCount(this.value)">
+            ${[1, 2, 3, 4, 5, 6].map(num => `<option value="${num}" ${cfg.blocksCount === num ? 'selected' : ''}>${num} Blocchi</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size: 0.85rem; font-weight: bold; display: block; color: #555;">Disposizione</label>
+          <select style="padding: 6px; border-radius: 4px; border: 1px solid #ccc;" onchange="updateCandyOrientation(this.value)">
+            <option value="vertical" ${cfg.orientation === 'vertical' ? 'selected' : ''}>In Verticale</option>
+            <option value="horizontal" ${cfg.orientation === 'horizontal' ? 'selected' : ''}>In Orizzontale</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 Tare Configurate in Alto -->
+    <div style="background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px;">
+      <h4 style="margin: 0 0 10px 0; color: #333; font-size: 1rem;">⚖️ Configurazione delle 4 Tare (Kg)</h4>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">
+        ${[0, 1, 2, 3].map(i => `
+          <div style="background: #f1f3f5; padding: 8px 12px; border-radius: 6px;">
+            <label style="font-size: 0.8rem; font-weight: bold; color: #495057;">Tara ${i+1}:</label>
+            <input type="number" step="any" value="${cfg.tares[i] ?? 0}" style="width: 100%; padding: 4px; margin-top: 4px;" onchange="updateCandyTaraVal(${i}, this.value)">
+          </div>
+        `).join('')}
+      </div>
     </div>
   `;
 
+  // Contenitore Blocchi (Verticale o Orizzontale)
+  let containerStyle = cfg.orientation === 'horizontal' 
+    ? "display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-bottom: 20px;"
+    : "display: flex; flex-direction: column; gap: 20px; margin-bottom: 20px;";
+
+  html += `<div style="${containerStyle}">`;
+
   if (cfg.blocks && Array.isArray(cfg.blocks)) {
-    cfg.blocks.forEach((block, bIndex) => {
+    let activeBlocksCount = parseInt(cfg.blocksCount) || cfg.blocks.length;
+    for (let bIndex = 0; bIndex < activeBlocksCount; bIndex++) {
+      if (!cfg.blocks[bIndex]) {
+        cfg.blocks[bIndex] = { id: `block_${bIndex}`, name: `🍬 Blocco ${bIndex+1}`, columns: 10, rows: 2, gridValues: {} };
+      }
+      let block = cfg.blocks[bIndex];
       let cols = parseInt(block.columns) || 1;
       let rowsCount = parseInt(block.rows) || 1;
 
       html += `
-        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px;">
-          <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f1f3f5; padding-bottom: 10px;">
-            <h4 style="margin: 0; color: #1976d2;">${esc(block.name)}</h4>
-            <div>Colonne: <input type="number" value="${cols}" style="width: 60px; padding: 4px;" onchange="updateBlockDim(${bIndex}, 'columns', this.value)"></div>
-            <div>Righe: <input type="number" value="${rowsCount}" style="width: 60px; padding: 4px;" onchange="updateBlockDim(${bIndex}, 'rows', this.value)"></div>
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+          <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f1f3f5; padding-bottom: 10px; flex-wrap: wrap;">
+            <input type="text" value="${esc(block.name)}" style="font-weight: bold; color: #1976d2; font-size: 1.1rem; border: 1px solid transparent; background: transparent; flex: 1;" onchange="updateBlockName(${bIndex}, this.value)">
+            <div>Colonne: <input type="number" value="${cols}" style="width: 55px; padding: 4px;" onchange="updateBlockDim(${bIndex}, 'columns', this.value)"></div>
+            <div>Righe: <input type="number" value="${rowsCount}" style="width: 55px; padding: 4px;" onchange="updateBlockDim(${bIndex}, 'rows', this.value)"></div>
           </div>
 
           <div style="overflow-x: auto;">
             <table style="width:100%; border-collapse: collapse;">
               <thead>
                 <tr style="background: #343a40; color: white;">
-                  <th style="padding: 8px;">Riga / Tara (Kg)</th>`;
+                  <th style="padding: 6px; font-size: 0.85rem;">Riga</th>`;
       for(let c=0; c<cols; c++) {
-        html += `<th style="padding: 8px; text-align:center;">Col ${c+1}</th>`;
+        html += `<th style="padding: 6px; text-align:center; font-size: 0.85rem;">Col ${c+1}</th>`;
       }
       html += `</tr></thead><tbody>`;
 
       for(let r=0; r<rowsCount; r++) {
-        let taraVal = block.taraBins?.[r] ?? 0;
         html += `<tr>
-          <td style="background: #e9ecef; font-weight: bold; padding: 8px;">
-            Riga ${r+1} <br>
-            <small>Tara: <input type="number" step="any" value="${taraVal}" style="width:60px;" onchange="updateBlockTara(${bIndex}, ${r}, this.value)"></small>
-          </td>`;
+          <td style="background: #e9ecef; font-weight: bold; padding: 6px; font-size: 0.85rem;">Riga ${r+1}</td>`;
         for(let c=0; c<cols; c++) {
-          let val = block.gridValues?.[r]?.[c] || "";
-          html += `<td style="border: 1px solid #dee2e6; padding: 4px; text-align: center;">
-            <input type="number" step="any" class="qty-input" value="${val}" style="width: 55px;" onchange="updateBlockCell(${bIndex}, ${r}, ${c}, this.value)">
+          let cellData = block.gridValues?.[r]?.[c] || { weight: "", taraIdx: 0 };
+          let weightVal = cellData.weight ?? "";
+          let currentTaraIdx = cellData.taraIdx ?? 0;
+
+          html += `<td style="border: 1px solid #dee2e6; padding: 4px; text-align: center; background: #fafafa;">
+            <div style="display: flex; flex-direction: column; gap: 3px;">
+              <input type="number" step="any" placeholder="Kg" value="${weightVal}" style="width: 55px; padding: 2px; text-align: center; margin: 0 auto;" onchange="updateCellData(${bIndex}, ${r}, ${c}, 'weight', this.value)">
+              <select style="font-size: 0.7rem; padding: 2px; border-radius: 3px; border: 1px solid #ccc;" onchange="updateCellData(${bIndex}, ${r}, ${c}, 'taraIdx', this.value)">
+                ${[0, 1, 2, 3].map(t => `<option value="${t}" ${currentTaraIdx === t ? 'selected' : ''}>T${t+1} (${cfg.tares[t] ?? 0}kg)</option>`).join('')}
+              </select>
+            </div>
           </td>`;
         }
         html += `</tr>`;
       }
       html += `</tbody></table></div></div>`;
-    });
+    }
   }
 
+  html += `</div>`; // fine contenitore blocchi
+
+  // Buste Sciolte
   html += `<div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px;">
     <h4>📦 Buste / Sacchetti Sciolti</h4>
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-top: 10px;">`;
@@ -826,26 +867,57 @@ function renderCandyView() {
   $("tbody").innerHTML = html;
 }
 
+function updateCandyBlocksCount(val) {
+  const cfg = getActiveCinemaCandyConfig();
+  cfg.blocksCount = parseInt(val) || 1;
+  saveCandyConfig();
+  renderCandyView();
+}
+
+function updateCandyOrientation(val) {
+  const cfg = getActiveCinemaCandyConfig();
+  cfg.orientation = val;
+  saveCandyConfig();
+  renderCandyView();
+}
+
+function updateCandyTaraVal(taraIdx, val) {
+  const cfg = getActiveCinemaCandyConfig();
+  if(!cfg.tares) cfg.tares = [0.37, 0.72, 0.50, 1.00];
+  cfg.tares[taraIdx] = n(val);
+  saveCandyConfig();
+  renderCandyView();
+}
+
+function updateBlockName(bIndex, val) {
+  const cfg = getActiveCinemaCandyConfig();
+  if(!cfg.blocks[bIndex]) cfg.blocks[bIndex] = {};
+  cfg.blocks[bIndex].name = val;
+  saveCandyConfig();
+}
+
 function updateBlockDim(bIndex, field, val) {
   const cfg = getActiveCinemaCandyConfig();
+  if(!cfg.blocks[bIndex]) cfg.blocks[bIndex] = {};
   cfg.blocks[bIndex][field] = parseInt(val) || 1;
   saveCandyConfig();
   renderCandyView();
 }
 
-function updateBlockTara(bIndex, r, val) {
-  const cfg = getActiveCinemaCandyConfig();
-  if(!cfg.blocks[bIndex].taraBins) cfg.blocks[bIndex].taraBins = [];
-  cfg.blocks[bIndex].taraBins[r] = n(val);
-  saveCandyConfig();
-}
-
-function updateBlockCell(bIndex, r, c, val) {
+function updateCellData(bIndex, r, c, subField, val) {
   const cfg = getActiveCinemaCandyConfig();
   if(!cfg.blocks[bIndex].gridValues) cfg.blocks[bIndex].gridValues = {};
   if(!cfg.blocks[bIndex].gridValues[r]) cfg.blocks[bIndex].gridValues[r] = {};
-  cfg.blocks[bIndex].gridValues[r][c] = n(val);
+  if(!cfg.blocks[bIndex].gridValues[r][c]) cfg.blocks[bIndex].gridValues[r][c] = { weight: "", taraIdx: 0 };
+
+  if (subField === 'weight') {
+    cfg.blocks[bIndex].gridValues[r][c].weight = n(val);
+  } else if (subField === 'taraIdx') {
+    cfg.blocks[bIndex].gridValues[r][c].taraIdx = parseInt(val) || 0;
+  }
+  
   saveCandyConfig();
+  renderCandyView();
 }
 
 function updateCandyBuste(idx, field, val) {
