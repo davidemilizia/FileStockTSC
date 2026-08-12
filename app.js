@@ -44,7 +44,34 @@ function getActiveCinemaCandyConfig() {
       buste: Array(10).fill({kg: 0, sleeve: 0})
     };
   }
-  return candyGridConfigs[cinemaName];
+  
+  // Controllo di sicurezza per evitare che manchino proprietà nei dati salvati in precedenza
+  let cfg = candyGridConfigs[cinemaName];
+  if (!cfg.blocks || !Array.isArray(cfg.blocks) || cfg.blocks.length === 0) {
+    cfg.blocks = [
+      {
+        id: "espositore",
+        name: "🍬 Espositore Principale",
+        columns: 22,
+        rows: 2,
+        taraBins: [0.37, 0.72],
+        gridValues: {}
+      },
+      {
+        id: "scorte",
+        name: "📦 Scorte / Magazzino",
+        columns: 10,
+        rows: 2,
+        taraBins: [0.50, 0.50],
+        gridValues: {}
+      }
+    ];
+  }
+  if (!cfg.buste || !Array.isArray(cfg.buste)) {
+    cfg.buste = Array(10).fill({kg: 0, sleeve: 0});
+  }
+
+  return cfg;
 }
 
 function saveCandyConfig() {
@@ -57,10 +84,12 @@ function getCandyTotalKg() {
   
   if (cfg.blocks && Array.isArray(cfg.blocks)) {
     cfg.blocks.forEach(block => {
-      for(let r=0; r<block.rows; r++) {
-        for(let c=0; c<block.columns; c++) {
-          let val = n(block.gridValues[r]?.[c] || 0);
-          let tara = n(block.taraBins[r] || 0);
+      let rowsCount = parseInt(block.rows) || 0;
+      let colsCount = parseInt(block.columns) || 0;
+      for(let r=0; r<rowsCount; r++) {
+        for(let c=0; c<colsCount; c++) {
+          let val = n(block.gridValues?.[r]?.[c] || 0);
+          let tara = n(block.taraBins?.[r] || 0);
           total += Math.max(0, val - tara);
         }
       }
@@ -740,12 +769,15 @@ function renderCandyView() {
 
   if (cfg.blocks && Array.isArray(cfg.blocks)) {
     cfg.blocks.forEach((block, bIndex) => {
+      let cols = parseInt(block.columns) || 1;
+      let rowsCount = parseInt(block.rows) || 1;
+
       html += `
         <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px;">
           <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f1f3f5; padding-bottom: 10px;">
             <h4 style="margin: 0; color: #1976d2;">${esc(block.name)}</h4>
-            <div>Colonne: <input type="number" value="${block.columns}" style="width: 60px; padding: 4px;" onchange="updateBlockDim(${bIndex}, 'columns', this.value)"></div>
-            <div>Righe: <input type="number" value="${block.rows}" style="width: 60px; padding: 4px;" onchange="updateBlockDim(${bIndex}, 'rows', this.value)"></div>
+            <div>Colonne: <input type="number" value="${cols}" style="width: 60px; padding: 4px;" onchange="updateBlockDim(${bIndex}, 'columns', this.value)"></div>
+            <div>Righe: <input type="number" value="${rowsCount}" style="width: 60px; padding: 4px;" onchange="updateBlockDim(${bIndex}, 'rows', this.value)"></div>
           </div>
 
           <div style="overflow-x: auto;">
@@ -753,20 +785,20 @@ function renderCandyView() {
               <thead>
                 <tr style="background: #343a40; color: white;">
                   <th style="padding: 8px;">Riga / Tara (Kg)</th>`;
-      for(let c=0; c<block.columns; c++) {
+      for(let c=0; c<cols; c++) {
         html += `<th style="padding: 8px; text-align:center;">Col ${c+1}</th>`;
       }
       html += `</tr></thead><tbody>`;
 
-      for(let r=0; r<block.rows; r++) {
-        let taraVal = block.taraBins[r] ?? 0;
+      for(let r=0; r<rowsCount; r++) {
+        let taraVal = block.taraBins?.[r] ?? 0;
         html += `<tr>
           <td style="background: #e9ecef; font-weight: bold; padding: 8px;">
             Riga ${r+1} <br>
             <small>Tara: <input type="number" step="any" value="${taraVal}" style="width:60px;" onchange="updateBlockTara(${bIndex}, ${r}, this.value)"></small>
           </td>`;
-        for(let c=0; c<block.columns; c++) {
-          let val = block.gridValues[r]?.[c] || "";
+        for(let c=0; c<cols; c++) {
+          let val = block.gridValues?.[r]?.[c] || "";
           html += `<td style="border: 1px solid #dee2e6; padding: 4px; text-align: center;">
             <input type="number" step="any" class="qty-input" value="${val}" style="width: 55px;" onchange="updateBlockCell(${bIndex}, ${r}, ${c}, this.value)">
           </td>`;
@@ -782,7 +814,7 @@ function renderCandyView() {
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-top: 10px;">`;
   
   for(let i=0; i<10; i++) {
-    let b = cfg.buste[i] || {kg: 0, sleeve: 0};
+    let b = cfg.buste?.[i] || {kg: 0, sleeve: 0};
     html += `<div style="background: #f1f3f5; padding: 10px; border-radius: 6px;">
       <strong>Elemento ${i+1}</strong><br>
       Kg: <input type="number" step="any" value="${b.kg || ''}" style="width:70px;" onchange="updateCandyBuste(${i}, 'kg', this.value)"><br>
@@ -810,6 +842,7 @@ function updateBlockTara(bIndex, r, val) {
 
 function updateBlockCell(bIndex, r, c, val) {
   const cfg = getActiveCinemaCandyConfig();
+  if(!cfg.blocks[bIndex].gridValues) cfg.blocks[bIndex].gridValues = {};
   if(!cfg.blocks[bIndex].gridValues[r]) cfg.blocks[bIndex].gridValues[r] = {};
   cfg.blocks[bIndex].gridValues[r][c] = n(val);
   saveCandyConfig();
