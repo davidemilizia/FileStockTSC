@@ -1,6 +1,7 @@
 /* --- FUNZIONE BASE PER SELEZIONE ELEMENTI --- */
 function $(id) { return document.getElementById(id); }
 function showError(msg) { alert(msg); }
+
 /* --- PARSER FILE SIZE E POSTMIX --- */
 function readMatrixAsync(file, sheetName) {
   return new Promise((resolve) => {
@@ -22,7 +23,7 @@ function readMatrixAsync(file, sheetName) {
   });
 }
 
-// Sostituisci il listener del caricamento file SIZE con questo:
+// Listener del caricamento file SIZE
 $("sizeFile").addEventListener("change", async e => {
   const f = e.target.files[0];
   if (!f) return;
@@ -30,13 +31,13 @@ $("sizeFile").addEventListener("change", async e => {
   
   try {
     let matrixSize = await readMatrixAsync(f, "SIZE");
-    if (matrixSize.length === 0) {
+    if (matrixSize.length === 0 && typeof readMatrix === "function") {
       matrixSize = await readMatrix(f); 
     }
     let parsedSizeResult = parseSize(matrixSize);
     size = parsedSizeResult.size;
 
-    // Legge il foglio POSTMIX separato (esattamente come l'hai nominato)
+    // Legge il foglio POSTMIX separato
     let matrixPostMix = await readMatrixAsync(f, "POSTMIX");
     postMixProducts = parsePostMixSheet(matrixPostMix);
 
