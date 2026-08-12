@@ -1,4 +1,4 @@
-let mag = [], size = [], rows = [];
+let mag = [], size = [], rows = [], postMixProducts = [];
 let cinemaName = "TSC Beinasco";
 let warehouses = ["Bar Principale", "Deposito Centrale", "Stand Popcorn"]; 
 let currentTab = 0; 
@@ -17,7 +17,7 @@ const DEFAULT_CINEMAS = [
   "TSC Torri di Quartesolo", "TSC Trieste", "TSC Vimercate"
 ];
 
-/* --- CONFIGURAZIONE DINAMICA BLOCCHI CARAMELLE PER CINEMA --- */
+/* --- CONFIGURAZIONE DINAMICA BLOCCHI CARAMELLE --- */
 let candyGridConfigs = JSON.parse(localStorage.getItem("candy_grid_configs")) || {};
 
 function getActiveCinemaCandyConfig() {
@@ -27,25 +27,12 @@ function getActiveCinemaCandyConfig() {
       orientation: "vertical",
       tares: [0.37, 0.72, 0.50, 1.00],
       blocks: [
-        {
-          id: "block_0",
-          name: "🍬 Espositore Principale",
-          columns: 22,
-          rows: 2,
-          gridValues: {}
-        },
-        {
-          id: "block_1",
-          name: "📦 Scorte / Magazzino",
-          columns: 10,
-          rows: 2,
-          gridValues: {}
-        }
+        { id: "block_0", name: "🍬 Espositore Principale", columns: 22, rows: 2, gridValues: {} },
+        { id: "block_1", name: "📦 Scorte / Magazzino", columns: 10, rows: 2, gridValues: {} }
       ],
       buste: Array(10).fill({kg: 0, sleeve: 0})
     };
   }
-  
   let cfg = candyGridConfigs[cinemaName];
   if (cfg.blocksCount === undefined) cfg.blocksCount = cfg.blocks ? cfg.blocks.length : 2;
   if (!cfg.orientation) cfg.orientation = "vertical";
@@ -56,10 +43,7 @@ function getActiveCinemaCandyConfig() {
       { id: "block_1", name: "📦 Scorte / Magazzino", columns: 10, rows: 2, gridValues: {} }
     ];
   }
-  if (!cfg.buste || !Array.isArray(cfg.buste)) {
-    cfg.buste = Array(10).fill({kg: 0, sleeve: 0});
-  }
-
+  if (!cfg.buste || !Array.isArray(cfg.buste)) cfg.buste = Array(10).fill({kg: 0, sleeve: 0});
   return cfg;
 }
 
@@ -70,7 +54,6 @@ function saveCandyConfig() {
 function getCandyTotalKg() {
   const cfg = getActiveCinemaCandyConfig();
   let total = 0;
-  
   if (cfg.blocks && Array.isArray(cfg.blocks)) {
     cfg.blocks.forEach(block => {
       let rowsCount = parseInt(block.rows) || 0;
@@ -88,13 +71,65 @@ function getCandyTotalKg() {
       }
     });
   }
-
   if (Array.isArray(cfg.buste)) {
-    cfg.buste.forEach(b => {
-      total += n(b.kg) + (n(b.sleeve) * 0.1);
-    });
+    cfg.buste.forEach(b => { total += n(b.kg) + (n(b.sleeve) * 0.1); });
   }
   return total;
+}
+
+/* --- CONFIGURAZIONE DINAMICA POST MIX --- */
+let postMixGridConfigs = JSON.parse(localStorage.getItem("postmix_grid_configs")) || {};
+
+function getActiveCinemaPostMixConfig() {
+  if (!postMixGridConfigs[cinemaName]) {
+    postMixGridConfigs[cinemaName] = {
+      blocksCount: 1,
+      orientation: "vertical",
+      blocks: [
+        { id: "pm_block_0", name: "🥤 Post Mix Principale", columns: 6, rows: 4, gridValues: {} }
+      ]
+    };
+  }
+  let cfg = postMixGridConfigs[cinemaName];
+  if (cfg.blocksCount === undefined) cfg.blocksCount = cfg.blocks ? cfg.blocks.length : 1;
+  if (!cfg.orientation) cfg.orientation = "vertical";
+  if (!cfg.blocks || !Array.isArray(cfg.blocks)) {
+    cfg.blocks = [{ id: "pm_block_0", name: "🥤 Post Mix Principale", columns: 6, rows: 4, gridValues: {} }];
+  }
+  return cfg;
+}
+
+function savePostMixConfig() {
+  localStorage.setItem("postmix_grid_configs", JSON.stringify(postMixGridConfigs));
+}
+
+function getPostMixProductTotals() {
+  const cfg = getActiveCinemaPostMixConfig();
+  let totals = {}; // prodName -> total Kg
+  
+  if (cfg.blocks && Array.isArray(cfg.blocks)) {
+    cfg.blocks.forEach(block => {
+      let rowsCount = parseInt(block.rows) || 0;
+      let colsCount = parseInt(block.columns) || 0;
+      for(let r=0; r<rowsCount; r++) {
+        for(let c=0; c<colsCount; c++) {
+          let cellData = block.gridValues?.[r]?.[c];
+          if (cellData && cellData.prodName) {
+            let weight = n(cellData.weight || 0);
+            let prodName = cellData.prodName;
+            
+            // Trova la tara fissa del prodotto
+            let pmItem = postMixProducts.find(p => p.name === prodName);
+            let taraVal = pmItem ? n(pmItem.tara) : 0;
+            
+            let netKg = Math.max(0, weight - taraVal);
+            totals[prodName] = (totals[prodName] || 0) + netKg;
+          }
+        }
+      }
+    });
+  }
+  return totals;
 }
 
 const $ = id => document.getElementById(id);
@@ -123,8 +158,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!f) return;
     $("sizeStatus").textContent = "Lettura anagrafica in corso...";
     readMatrix(f, "SIZE").then(m => {
-      size = parseSize(m);
-      $("sizeStatus").textContent = `✓ ${f.name} (${size.length} articoli)`;
+      let parsedSizeResult = parseSize(m);
+      size = parsedSizeResult.size;
+      postMixProducts = parsedSizeResult.postMix;
+      $("sizeStatus").textContent = `✓ ${f.name} (${size.length} articoli, ${postMixProducts.length} post-mix)`;
       build();
     }).catch(err => {
       $("sizeStatus").textContent = "❌ Errore file SIZE";
@@ -144,25 +181,19 @@ function updateHeaderTitle() {
   $("appTitle").textContent = `📊 Gestione Inventario — ${cinemaName}`;
 }
 
-function showError(msg) {
-  alert(msg);
-}
+function showError(msg) { alert(msg); }
 
 /* ---------------- SETUP & STORAGE ---------------- */
 function loadSetupFromStorage() {
   const savedCinema = localStorage.getItem("cinema_info_name");
   if (savedCinema) cinemaName = savedCinema;
   const savedWh = localStorage.getItem("cinema_warehouses");
-  if (savedWh) {
-    try { warehouses = JSON.parse(savedWh); } catch(e){}
-  }
+  if (savedWh) { try { warehouses = JSON.parse(savedWh); } catch(e){} }
 }
 
 function loadCountsFromStorage() {
   const savedCounts = localStorage.getItem("inventory_counts");
-  if (savedCounts) {
-    try { countsData = JSON.parse(savedCounts); } catch(e){}
-  }
+  if (savedCounts) { try { countsData = JSON.parse(savedCounts); } catch(e){} }
 }
 
 function saveCountsToStorage() {
@@ -191,7 +222,6 @@ function saveWarehousesSetup() {
   } else {
     cinemaName = sel;
   }
-
   localStorage.setItem("cinema_info_name", cinemaName);
 
   const inputs = document.querySelectorAll(".wh-input-item");
@@ -216,7 +246,6 @@ function renderSetupView() {
   
   const select = $("cinemaSelect");
   select.innerHTML = "";
-
   let matched = false;
   DEFAULT_CINEMAS.forEach(c => {
     const opt = document.createElement("option");
@@ -279,9 +308,15 @@ function renderTabs() {
 
   const btnCandy = document.createElement("button");
   btnCandy.className = `tab-btn ${currentTab === 'candy' ? 'active' : ''}`;
-  btnCandy.textContent = `🍬 Magazzino Caramelle`;
+  btnCandy.textContent = `🍬 Caramelle`;
   btnCandy.onclick = () => { currentTab = 'candy'; switchTab(); };
   bar.appendChild(btnCandy);
+
+  const btnPostMix = document.createElement("button");
+  btnPostMix.className = `tab-btn ${currentTab === 'postmix' ? 'active' : ''}`;
+  btnPostMix.textContent = `🥤 Post Mix`;
+  btnPostMix.onclick = () => { currentTab = 'postmix'; switchTab(); };
+  bar.appendChild(btnPostMix);
 
   const totBtn = document.createElement("button");
   totBtn.className = `tab-btn ${currentTab === 'tot' ? 'active' : ''}`;
@@ -328,9 +363,7 @@ function text(v) { return String(v ?? "").trim(); }
 function cleanCode(val) {
   if (val === null || val === undefined) return "";
   let s = text(val);
-  if (/^\d+$/.test(s)) {
-    s = String(parseInt(s, 10));
-  }
+  if (/^\d+$/.test(s)) s = String(parseInt(s, 10));
   return s;
 }
 
@@ -352,25 +385,15 @@ function fmtMoney(val) { return Number(val || 0).toLocaleString('it-IT', { minim
 /* PARSER MAGAZZINO */
 function parseMag(m) {
   const out = [];
-
   for (let i = 0; i < m.length; i++) {
     const r = m[i];
     if (!r || !r.length) continue;
-
     const uom = text(r[2]).trim().toUpperCase();
-
-    if (!uom || (uom !== "PZ" && uom !== "KG" && uom !== "LT" && uom !== "CL" && uom !== "GR")) {
-      continue;
-    }
+    if (!uom || (uom !== "PZ" && uom !== "KG" && uom !== "LT" && uom !== "CL" && uom !== "GR")) continue;
 
     let name = "";
-    if (i + 1 < m.length && m[i + 1]) {
-      name = text(m[i + 1][1] || m[i + 1][0]).trim();
-    }
-
-    if (!name) {
-      name = text(r[1]).trim();
-    }
+    if (i + 1 < m.length && m[i + 1]) name = text(m[i + 1][1] || m[i + 1][0]).trim();
+    if (!name) name = text(r[1]).trim();
 
     const rawCode = text(r[1]).trim();
     const code = cleanCode(rawCode);
@@ -378,38 +401,22 @@ function parseMag(m) {
     const iniziale = n(r[5]);
     const danni = n(r[14]);
     const venduto = n(r[18]);
-    
     let atteso = n(r[23]);
-    if (atteso === 0 && (iniziale > 0 || venduto > 0)) {
-      atteso = iniziale - danni - venduto;
-    }
+    if (atteso === 0 && (iniziale > 0 || venduto > 0)) atteso = iniziale - danni - venduto;
 
     const standardCost = Math.abs(n(r[29] || r[32] || 0));
 
-    out.push({
-      rawCode,
-      code,
-      name,
-      uom,
-      iniziale,
-      danni,
-      venduto,
-      atteso,
-      standardCost
-    });
+    out.push({ rawCode, code, name, uom, iniziale, danni, venduto, atteso, standardCost });
   }
-
-  if (out.length === 0) {
-    throw new Error("Nessun prodotto trovato nel report Magazzino.");
-  }
-
+  if (out.length === 0) throw new Error("Nessun prodotto trovato nel report Magazzino.");
   return out;
 }
 
-/* PARSER SIZE & KIT */
+/* PARSER SIZE, KIT & POSTMIX */
 function parseSize(m) {
-  const out = [];
-  let isKitSection = false;
+  const sizeOut = [];
+  const postMixOut = [];
+  let section = "SIZE"; // SIZE, KIT, POSTMIX
 
   for (let i = 0; i < m.length; i++) {
     const r = m[i];
@@ -419,22 +426,24 @@ function parseSize(m) {
     const normFirst = norm(firstVal);
 
     if (normFirst === "KIT" || norm(r[1]) === "TIPO" || (normFirst === "" && norm(r[1]) === "TIPO")) {
-      isKitSection = true;
+      section = "KIT";
+      continue;
+    }
+    if (normFirst === "POSTMIX" || normFirst === "POST MIX" || norm(r[1]) === "TARA") {
+      section = "POSTMIX";
       continue;
     }
 
-    if (isKitSection) {
+    if (section === "KIT") {
       const kitName = firstVal;
       const kitType = text(r[1]); 
       if (!kitName || normFirst === "PRODOTTO" || normFirst === "KIT") continue;
 
       const ingredients = [];
       let currentIngName = "";
-
       for (let c = 2; c < r.length; c++) {
         const val = r[c];
         if (val === null || val === undefined || String(val).trim() === "") continue;
-        
         const numericVal = Number(val);
         if (!isNaN(numericVal) && typeof val !== "string" && !isNaN(parseFloat(val))) {
           if (currentIngName && numericVal > 0) {
@@ -443,13 +452,10 @@ function parseSize(m) {
           }
         } else {
           const textVal = text(val);
-          if (norm(textVal) !== "PRODOTTO" && norm(textVal) !== "Q.TA") {
-            currentIngName = textVal;
-          }
+          if (norm(textVal) !== "PRODOTTO" && norm(textVal) !== "Q.TA") currentIngName = textVal;
         }
       }
-
-      out.push({
+      sizeOut.push({
         code: "KIT_" + cleanCode(kitName),
         name: kitName,
         boxSize: 1,
@@ -458,6 +464,11 @@ function parseSize(m) {
         kitType,
         ingredients
       });
+    } else if (section === "POSTMIX") {
+      const prodName = firstVal;
+      const taraVal = n(r[1]);
+      if (!prodName || normFirst === "PRODOTTO" || normFirst === "TARA") continue;
+      postMixOut.push({ name: prodName, tara: taraVal });
     } else {
       const name = firstVal;
       const normName = norm(name);
@@ -469,14 +480,11 @@ function parseSize(m) {
       let primaryCode = "";
       for (let c = 4; c < r.length; c++) {
         const valStr = text(r[c]);
-        if (valStr && !primaryCode) {
-          primaryCode = cleanCode(valStr);
-          break;
-        }
+        if (valStr && !primaryCode) { primaryCode = cleanCode(valStr); break; }
       }
       if (!primaryCode) primaryCode = cleanCode(name);
 
-      out.push({
+      sizeOut.push({
         code: primaryCode,
         rawCode: primaryCode,
         name,
@@ -488,10 +496,7 @@ function parseSize(m) {
     }
   }
 
-  if (out.length === 0) {
-    throw new Error("Nessuna anagrafica SIZE trovata nel file inserito.");
-  }
-  return out;
+  return { size: sizeOut, postMix: postMixOut };
 }
 
 /* BUILD E ORDINAMENTO KIT IN FONDO */
@@ -512,7 +517,6 @@ function build() {
 
   rows = mag.map(x => {
     let s = sizeByCode.get(x.code) || sizeByName.get(norm(x.name)) || {};
-
     return { 
       ...x, 
       boxSize: s.boxSize || 0, 
@@ -527,19 +531,9 @@ function build() {
       const exists = rows.some(r => norm(r.name) === norm(s.name));
       if (!exists) {
         rows.push({
-          rawCode: s.code,
-          code: s.code,
-          name: s.name,
-          uom: s.kitType || "BOX",
-          iniziale: 0,
-          danni: 0,
-          venduto: 0,
-          atteso: 0,
-          standardCost: 0,
-          boxSize: s.boxSize || 1,
-          sleeveSize: s.sleeveSize || 0,
-          isKit: true,
-          ingredients: s.ingredients || []
+          rawCode: s.code, code: s.code, name: s.name, uom: s.kitType || "BOX",
+          iniziale: 0, danni: 0, venduto: 0, atteso: 0, standardCost: 0,
+          boxSize: s.boxSize || 1, sleeveSize: s.sleeveSize || 0, isKit: true, ingredients: s.ingredients || []
         });
       }
     }
@@ -556,7 +550,7 @@ function build() {
   $("setupView").style.display = "none";
   $("tabContent").style.display = "block";
 
-  if (typeof currentTab === 'string' && currentTab !== 'tot' && currentTab !== 'candy') currentTab = 0;
+  if (typeof currentTab === 'string' && currentTab !== 'tot' && currentTab !== 'candy' && currentTab !== 'postmix') currentTab = 0;
 
   renderTabs();
   render();
@@ -566,12 +560,10 @@ function build() {
 function getCount(whIdx, code) {
   if (!countsData[whIdx]) countsData[whIdx] = {};
   if (!countsData[whIdx][code]) countsData[whIdx][code] = { box: [0], sleeve: [0], sfuso: [0] };
-  
   const c = countsData[whIdx][code];
   if (!Array.isArray(c.box)) c.box = [n(c.box)];
   if (!Array.isArray(c.sleeve)) c.sleeve = [n(c.sleeve)];
   if (!Array.isArray(c.sfuso)) c.sfuso = [n(c.sfuso)];
-  
   return c;
 }
 
@@ -579,9 +571,7 @@ function sumArr(arr) { return arr.reduce((a, b) => a + n(b), 0); }
 
 function getKitContributionDetail(productName, productCode) {
   let kitContribution = 0;
-  
   const cleanStr = (str) => norm(str).replace(/[^A-Z0-9]/g, "");
-  
   const normProdName = cleanStr(productName);
   const normProdCode = cleanCode(productCode);
 
@@ -590,7 +580,6 @@ function getKitContributionDetail(productName, productCode) {
       rowItem.ingredients.forEach(ing => {
         const normIngName = cleanStr(ing.name);
         const normIngCode = cleanCode(ing.code);
-        
         const matchCode = (normProdCode && normIngCode && normProdCode === normIngCode);
         const matchName = (normProdName.includes(normIngName) || normIngName.includes(normProdName));
 
@@ -601,14 +590,12 @@ function getKitContributionDetail(productName, productCode) {
             const kitSleeveTot = sumArr(kitCounts.sleeve);
             const kitSfusoTot = sumArr(kitCounts.sfuso);
             const kitTotalPezzi = (kitBoxTot * rowItem.boxSize) + (kitSleeveTot * rowItem.sleeveSize) + kitSfusoTot;
-            
             kitContribution += kitTotalPezzi * ing.qty;
           });
         }
       });
     }
   });
-
   return kitContribution;
 }
 
@@ -623,21 +610,31 @@ function getGlobalRilevato(code, r) {
   
   let basePezzi = (totBox * r.boxSize) + (totSleeve * r.sleeveSize) + totSfuso;
   
+  // Aggiunta Caramelle Aermont
   if (norm(r.name).includes("CARAMELLE") && norm(r.name).includes("AERMONT")) {
     basePezzi += getCandyTotalKg();
+  }
+
+  // Aggiunta Post Mix
+  const postMixTotals = getPostMixProductTotals();
+  const cleanStr = str => norm(str).replace(/[^A-Z0-9]/g, "");
+  const rNameClean = cleanStr(r.name);
+  
+  for (let [pmName, pmKg] of Object.entries(postMixTotals)) {
+    const pmClean = cleanStr(pmName);
+    if (rNameClean === pmClean || rNameClean.includes(pmClean) || pmClean.includes(rNameClean)) {
+      basePezzi += pmKg;
+    }
   }
 
   return basePezzi + getKitContributionDetail(r.name, r.code);
 }
 
-/* ---------------- TABLE RENDER & MAG. CARAMELLE ---------------- */
+/* ---------------- TABLE RENDER & MAGAZZINI SPECIALI ---------------- */
 function render() {
   if (currentTab === 'setup') return;
-
-  if (currentTab === 'candy') {
-    renderCandyView();
-    return;
-  }
+  if (currentTab === 'candy') { renderCandyView(); return; }
+  if (currentTab === 'postmix') { renderPostMixView(); return; }
 
   const q = norm($("search").value);
   const data = rows.filter(x => norm(x.name).includes(q) || norm(x.code).includes(q));
@@ -668,7 +665,7 @@ function render() {
       <th class="grp-sfuso" style="background: #fff59d; color: #f57f17;">Q.tà Sfuso</th>
       <th class="num" style="background: #343a40; color: white;">Atteso</th>
       <th class="num" style="background: #343a40; color: white;">Rilevato Base</th>
-      <th class="num" style="background: #e3f2fd; color: #0d47a1;">➕ Da Kit</th>
+      <th class="num" style="background: #e3f2fd; color: #0d47a1;">➕ Da Kit/Spec.</th>
       <th class="num" style="background: #343a40; color: white;">Effettivo Totale</th>
       <th class="num" style="background: #343a40; color: white;">Diff. Totale</th>
       <th class="num grp-valore" style="background: #ffcdd2; color: #b71c1c;">Costo Unit.</th>
@@ -680,7 +677,6 @@ function render() {
 
   data.forEach(r => {
     const tr = document.createElement("tr");
-    
     if (r.isKit) {
       tr.style.backgroundColor = "#e3f2fd";
       tr.style.borderLeft = "4px solid #1976d2";
@@ -703,7 +699,6 @@ function render() {
 
     const baseRilevato = (totBoxLocal * r.boxSize) + (totSleeveLocal * r.sleeveSize) + totSfusoLocal;
     const kitPart = getKitContributionDetail(r.name, r.code);
-    
     const effettivoTotaleComplesso = getGlobalRilevato(r.code, r);
     const diffTotale = effettivoTotaleComplesso - r.atteso;
     const diffValore = diffTotale * (r.standardCost || 0);
@@ -714,15 +709,11 @@ function render() {
       <td class="num">${fmt(r.iniziale)}</td>
       <td class="num">${fmt(r.danni)}</td>
       <td class="num">${fmt(r.venduto)}</td>
-      
       <td class="num grp-box">${r.boxSize ? fmt(r.boxSize) : '-'}</td>
       <td class="grp-box">${isTotTab ? fmt(totBoxLocal) : renderMultiInput(currentTab, r.code, 'box', r.boxSize)}</td>
-      
       <td class="num grp-sleeve">${r.sleeveSize ? fmt(r.sleeveSize) : '-'}</td>
       <td class="grp-sleeve">${isTotTab ? fmt(totSleeveLocal) : renderMultiInput(currentTab, r.code, 'sleeve', r.sleeveSize)}</td>
-      
       <td class="num grp-sfuso">${isTotTab ? fmt(totSfusoLocal) : renderMultiInput(currentTab, r.code, 'sfuso', 1)}</td>
-      
       <td class="num">${fmt(r.atteso)}</td>
       <td class="num">${fmt(baseRilevato)}</td>
       <td class="num" style="background:#f0f4f8; font-weight:bold; color:#1976d2;">${fmt(kitPart)}</td>
@@ -731,33 +722,25 @@ function render() {
       <td class="num grp-valore">€ ${fmtMoney(r.standardCost || 0)}</td>
       <td class="num grp-valore cell-val ${diffValore >= 0 ? 'ok' : 'bad'}" id="val-${r.code}">€ ${fmtMoney(diffValore)}</td>
     `;
-
     $("tbody").appendChild(tr);
   });
 
   recalcKPIs();
 }
 
+/* --- RENDER MAGAZZINO CARAMELLE --- */
 function renderCandyView() {
   const cfg = getActiveCinemaCandyConfig();
-  $("count").textContent = `Gestione Caramelle (${cinemaName})`;
-  
-  $("thead").innerHTML = `
-    <tr>
-      <th style="background: #212529; color: white; padding: 12px;">🍬 Magazzino Caramelle a Blocchi — ${esc(cinemaName)}</th>
-    </tr>
-  `;
+  $("count").textContent = `Magazzino Caramelle (${cinemaName})`;
+  $("thead").innerHTML = `<tr><th style="background: #212529; color: white; padding: 12px;">🍬 Magazzino Caramelle a Blocchi — ${esc(cinemaName)}</th></tr>`;
 
   let html = `<tr><td style="padding: 20px; background: #f8f9fa;">`;
-
-  // Sezione superiore: Totale, 4 Tare, Numero Blocchi, Orientamento
   html += `
     <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: center;">
       <div>
         <h3 style="margin: 0; color: #333;">Totale Generale Caramelle</h3>
         <div style="font-size: 1.5rem; font-weight: bold; color: #0d47a1; margin-top: 5px;">${fmt(getCandyTotalKg())} Kg</div>
       </div>
-
       <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
         <div>
           <label style="font-size: 0.85rem; font-weight: bold; display: block; color: #555;">N. Blocchi</label>
@@ -774,8 +757,6 @@ function renderCandyView() {
         </div>
       </div>
     </div>
-
-    <!-- 4 Tare Configurate in Alto -->
     <div style="background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px;">
       <h4 style="margin: 0 0 10px 0; color: #333; font-size: 1rem;">⚖️ Configurazione delle 4 Tare (Kg)</h4>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">
@@ -789,71 +770,58 @@ function renderCandyView() {
     </div>
   `;
 
-  // Contenitore Blocchi (Verticale o Orizzontale)
   let containerStyle = cfg.orientation === 'horizontal' 
     ? "display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-bottom: 20px;"
     : "display: flex; flex-direction: column; gap: 20px; margin-bottom: 20px;";
 
   html += `<div style="${containerStyle}">`;
-
-  if (cfg.blocks && Array.isArray(cfg.blocks)) {
-    let activeBlocksCount = parseInt(cfg.blocksCount) || cfg.blocks.length;
-    for (let bIndex = 0; bIndex < activeBlocksCount; bIndex++) {
-      if (!cfg.blocks[bIndex]) {
-        cfg.blocks[bIndex] = { id: `block_${bIndex}`, name: `🍬 Blocco ${bIndex+1}`, columns: 10, rows: 2, gridValues: {} };
-      }
-      let block = cfg.blocks[bIndex];
-      let cols = parseInt(block.columns) || 1;
-      let rowsCount = parseInt(block.rows) || 1;
-
-      html += `
-        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-          <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f1f3f5; padding-bottom: 10px; flex-wrap: wrap;">
-            <input type="text" value="${esc(block.name)}" style="font-weight: bold; color: #1976d2; font-size: 1.1rem; border: 1px solid transparent; background: transparent; flex: 1;" onchange="updateBlockName(${bIndex}, this.value)">
-            <div>Colonne: <input type="number" value="${cols}" style="width: 55px; padding: 4px;" onchange="updateBlockDim(${bIndex}, 'columns', this.value)"></div>
-            <div>Righe: <input type="number" value="${rowsCount}" style="width: 55px; padding: 4px;" onchange="updateBlockDim(${bIndex}, 'rows', this.value)"></div>
-          </div>
-
-          <div style="overflow-x: auto;">
-            <table style="width:100%; border-collapse: collapse;">
-              <thead>
-                <tr style="background: #343a40; color: white;">
-                  <th style="padding: 6px; font-size: 0.85rem;">Riga</th>`;
-      for(let c=0; c<cols; c++) {
-        html += `<th style="padding: 6px; text-align:center; font-size: 0.85rem;">Col ${c+1}</th>`;
-      }
-      html += `</tr></thead><tbody>`;
-
-      for(let r=0; r<rowsCount; r++) {
-        html += `<tr>
-          <td style="background: #e9ecef; font-weight: bold; padding: 6px; font-size: 0.85rem;">Riga ${r+1}</td>`;
-        for(let c=0; c<cols; c++) {
-          let cellData = block.gridValues?.[r]?.[c] || { weight: "", taraIdx: 0 };
-          let weightVal = cellData.weight ?? "";
-          let currentTaraIdx = cellData.taraIdx ?? 0;
-
-          html += `<td style="border: 1px solid #dee2e6; padding: 4px; text-align: center; background: #fafafa;">
-            <div style="display: flex; flex-direction: column; gap: 3px;">
-              <input type="number" step="any" placeholder="Kg" value="${weightVal}" style="width: 55px; padding: 2px; text-align: center; margin: 0 auto;" onchange="updateCellData(${bIndex}, ${r}, ${c}, 'weight', this.value)">
-              <select style="font-size: 0.7rem; padding: 2px; border-radius: 3px; border: 1px solid #ccc;" onchange="updateCellData(${bIndex}, ${r}, ${c}, 'taraIdx', this.value)">
-                ${[0, 1, 2, 3].map(t => `<option value="${t}" ${currentTaraIdx === t ? 'selected' : ''}>T${t+1} (${cfg.tares[t] ?? 0}kg)</option>`).join('')}
-              </select>
-            </div>
-          </td>`;
-        }
-        html += `</tr>`;
-      }
-      html += `</tbody></table></div></div>`;
+  let activeBlocksCount = parseInt(cfg.blocksCount) || cfg.blocks.length;
+  for (let bIndex = 0; bIndex < activeBlocksCount; bIndex++) {
+    if (!cfg.blocks[bIndex]) {
+      cfg.blocks[bIndex] = { id: `block_${bIndex}`, name: `🍬 Blocco ${bIndex+1}`, columns: 10, rows: 2, gridValues: {} };
     }
+    let block = cfg.blocks[bIndex];
+    let cols = parseInt(block.columns) || 1;
+    let rowsCount = parseInt(block.rows) || 1;
+
+    html += `
+      <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f1f3f5; padding-bottom: 10px; flex-wrap: wrap;">
+          <input type="text" value="${esc(block.name)}" style="font-weight: bold; color: #1976d2; font-size: 1.1rem; border: 1px solid transparent; background: transparent; flex: 1;" onchange="updateCandyBlockName(${bIndex}, this.value)">
+          <div>Colonne: <input type="number" value="${cols}" style="width: 55px; padding: 4px;" onchange="updateCandyBlockDim(${bIndex}, 'columns', this.value)"></div>
+          <div>Righe: <input type="number" value="${rowsCount}" style="width: 55px; padding: 4px;" onchange="updateCandyBlockDim(${bIndex}, 'rows', this.value)"></div>
+        </div>
+        <div style="overflow-x: auto;">
+          <table style="width:100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background: #343a40; color: white;">
+                <th style="padding: 6px; font-size: 0.85rem;">Riga</th>`;
+    for(let c=0; c<cols; c++) html += `<th style="padding: 6px; text-align:center; font-size: 0.85rem;">Col ${c+1}</th>`;
+    html += `</tr></thead><tbody>`;
+
+    for(let r=0; r<rowsCount; r++) {
+      html += `<tr><td style="background: #e9ecef; font-weight: bold; padding: 6px; font-size: 0.85rem;">Riga ${r+1}</td>`;
+      for(let c=0; c<cols; c++) {
+        let cellData = block.gridValues?.[r]?.[c] || { weight: "", taraIdx: 0 };
+        html += `<td style="border: 1px solid #dee2e6; padding: 4px; text-align: center; background: #fafafa;">
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <input type="number" step="any" placeholder="Kg" value="${cellData.weight ?? ""}" style="width: 55px; padding: 2px; text-align: center; margin: 0 auto;" onchange="updateCandyCell(${bIndex}, ${r}, ${c}, 'weight', this.value)">
+            <select style="font-size: 0.7rem; padding: 2px; border-radius: 3px; border: 1px solid #ccc;" onchange="updateCandyCell(${bIndex}, ${r}, ${c}, 'taraIdx', this.value)">
+              ${[0, 1, 2, 3].map(t => `<option value="${t}" ${(cellData.taraIdx ?? 0) === t ? 'selected' : ''}>T${t+1} (${cfg.tares[t] ?? 0}kg)</option>`).join('')}
+            </select>
+          </div>
+        </td>`;
+      }
+      html += `</tr>`;
+    }
+    html += `</tbody></table></div></div>`;
   }
+  html += `</div>`;
 
-  html += `</div>`; // fine contenitore blocchi
-
-  // Buste Sciolte
+  // Buste Sciolte Caramelle
   html += `<div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px;">
     <h4>📦 Buste / Sacchetti Sciolti</h4>
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-top: 10px;">`;
-  
   for(let i=0; i<10; i++) {
     let b = cfg.buste?.[i] || {kg: 0, sleeve: 0};
     html += `<div style="background: #f1f3f5; padding: 10px; border-radius: 6px;">
@@ -863,87 +831,165 @@ function renderCandyView() {
     </div>`;
   }
   html += `</div></div></td></tr>`;
-
   $("tbody").innerHTML = html;
 }
 
-function updateCandyBlocksCount(val) {
-  const cfg = getActiveCinemaCandyConfig();
-  cfg.blocksCount = parseInt(val) || 1;
-  saveCandyConfig();
-  renderCandyView();
+/* --- RENDER MAGAZZINO POST MIX --- */
+function renderPostMixView() {
+  const cfg = getActiveCinemaPostMixConfig();
+  const totals = getPostMixProductTotals();
+  $("count").textContent = `Magazzino Post Mix (${cinemaName})`;
+  $("thead").innerHTML = `<tr><th style="background: #212529; color: white; padding: 12px;">🥤 Magazzino Post Mix a Blocchi — ${esc(cinemaName)}</th></tr>`;
+
+  let html = `<tr><td style="padding: 20px; background: #f8f9fa;">`;
+  html += `
+    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: center;">
+      <div>
+        <h3 style="margin: 0; color: #333;">Totale Netti Post Mix per Prodotto</h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
+          ${postMixProducts.length === 0 ? '<span style="color:#d32f2f;">⚠️ Nessun prodotto Post Mix trovato nel file SIZE (aggiungi la sezione POSTMIX).</span>' : ''}
+          ${postMixProducts.map(p => `
+            <div style="background: #e3f2fd; padding: 6px 12px; border-radius: 6px; font-size: 0.9rem;">
+              <strong>${esc(p.name)}:</strong> <span style="color: #0d47a1; font-weight: bold;">${fmt(totals[p.name] || 0)} Kg</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+        <div>
+          <label style="font-size: 0.85rem; font-weight: bold; display: block; color: #555;">N. Blocchi</label>
+          <select style="padding: 6px; border-radius: 4px; border: 1px solid #ccc;" onchange="updatePostMixBlocksCount(this.value)">
+            ${[1, 2, 3, 4, 5, 6].map(num => `<option value="${num}" ${cfg.blocksCount === num ? 'selected' : ''}>${num} Blocchi</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size: 0.85rem; font-weight: bold; display: block; color: #555;">Disposizione</label>
+          <select style="padding: 6px; border-radius: 4px; border: 1px solid #ccc;" onchange="updatePostMixOrientation(this.value)">
+            <option value="vertical" ${cfg.orientation === 'vertical' ? 'selected' : ''}>In Verticale</option>
+            <option value="horizontal" ${cfg.orientation === 'horizontal' ? 'selected' : ''}>In Orizzontale</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  `;
+
+  let containerStyle = cfg.orientation === 'horizontal' 
+    ? "display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px; margin-bottom: 20px;"
+    : "display: flex; flex-direction: column; gap: 20px; margin-bottom: 20px;";
+
+  html += `<div style="${containerStyle}">`;
+  let activeBlocksCount = parseInt(cfg.blocksCount) || cfg.blocks.length;
+  for (let bIndex = 0; bIndex < activeBlocksCount; bIndex++) {
+    if (!cfg.blocks[bIndex]) {
+      cfg.blocks[bIndex] = { id: `pm_block_${bIndex}`, name: `🥤 Blocco Post Mix ${bIndex+1}`, columns: 6, rows: 4, gridValues: {} };
+    }
+    let block = cfg.blocks[bIndex];
+    let cols = parseInt(block.columns) || 1;
+    let rowsCount = parseInt(block.rows) || 1;
+
+    html += `
+      <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f1f3f5; padding-bottom: 10px; flex-wrap: wrap;">
+          <input type="text" value="${esc(block.name)}" style="font-weight: bold; color: #d84315; font-size: 1.1rem; border: 1px solid transparent; background: transparent; flex: 1;" onchange="updatePostMixBlockName(${bIndex}, this.value)">
+          <div>Colonne: <input type="number" value="${cols}" style="width: 55px; padding: 4px;" onchange="updatePostMixBlockDim(${bIndex}, 'columns', this.value)"></div>
+          <div>Righe: <input type="number" value="${rowsCount}" style="width: 55px; padding: 4px;" onchange="updatePostMixBlockDim(${bIndex}, 'rows', this.value)"></div>
+        </div>
+        <div style="overflow-x: auto;">
+          <table style="width:100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background: #343a40; color: white;">
+                <th style="padding: 6px; font-size: 0.85rem;">Riga</th>`;
+    for(let c=0; c<cols; c++) html += `<th style="padding: 6px; text-align:center; font-size: 0.85rem;">Col ${c+1}</th>`;
+    html += `</tr></thead><tbody>`;
+
+    for(let r=0; r<rowsCount; r++) {
+      html += `<tr><td style="background: #e9ecef; font-weight: bold; padding: 6px; font-size: 0.85rem;">Riga ${r+1}</td>`;
+      for(let c=0; c<cols; c++) {
+        let cellData = block.gridValues?.[r]?.[c] || { weight: "", prodName: "" };
+        let selProd = cellData.prodName || "";
+        
+        html += `<td style="border: 1px solid #dee2e6; padding: 6px; text-align: center; background: #fafafa;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <select style="font-size: 0.75rem; padding: 3px; border-radius: 3px; border: 1px solid #ccc; max-width: 140px;" onchange="updatePostMixCell(${bIndex}, ${r}, ${c}, 'prodName', this.value)">
+              <option value="">-- Seleziona Prodotto --</option>
+              ${postMixProducts.map(p => `<option value="${esc(p.name)}" ${selProd === p.name ? 'selected' : ''}>${esc(p.name)} (Tara: ${p.tara}kg)</option>`).join('')}
+            </select>
+            <input type="number" step="any" placeholder="Kg Lordi" value="${cellData.weight ?? ""}" style="width: 80px; padding: 3px; text-align: center; margin: 0 auto;" onchange="updatePostMixCell(${bIndex}, ${r}, ${c}, 'weight', this.value)">
+          </div>
+        </td>`;
+      }
+      html += `</tr>`;
+    }
+    html += `</tbody></table></div></div>`;
+  }
+  html += `</div></td></tr>`;
+  $("tbody").innerHTML = html;
 }
 
-function updateCandyOrientation(val) {
-  const cfg = getActiveCinemaCandyConfig();
-  cfg.orientation = val;
-  saveCandyConfig();
-  renderCandyView();
-}
-
+/* --- UPDATE HANDLERS CANDY --- */
+function updateCandyBlocksCount(val) { getActiveCinemaCandyConfig().blocksCount = parseInt(val) || 1; saveCandyConfig(); renderCandyView(); }
+function updateCandyOrientation(val) { getActiveCinemaCandyConfig().orientation = val; saveCandyConfig(); renderCandyView(); }
 function updateCandyTaraVal(taraIdx, val) {
-  const cfg = getActiveCinemaCandyConfig();
+  let cfg = getActiveCinemaCandyConfig();
   if(!cfg.tares) cfg.tares = [0.37, 0.72, 0.50, 1.00];
   cfg.tares[taraIdx] = n(val);
   saveCandyConfig();
   renderCandyView();
 }
-
-function updateBlockName(bIndex, val) {
-  const cfg = getActiveCinemaCandyConfig();
-  if(!cfg.blocks[bIndex]) cfg.blocks[bIndex] = {};
-  cfg.blocks[bIndex].name = val;
-  saveCandyConfig();
-}
-
-function updateBlockDim(bIndex, field, val) {
-  const cfg = getActiveCinemaCandyConfig();
-  if(!cfg.blocks[bIndex]) cfg.blocks[bIndex] = {};
-  cfg.blocks[bIndex][field] = parseInt(val) || 1;
+function updateCandyBlockName(bIndex, val) { getActiveCinemaCandyConfig().blocks[bIndex].name = val; saveCandyConfig(); }
+function updateCandyBlockDim(bIndex, field, val) {
+  getActiveCinemaCandyConfig().blocks[bIndex][field] = parseInt(val) || 1;
   saveCandyConfig();
   renderCandyView();
 }
-
-function updateCellData(bIndex, r, c, subField, val) {
-  const cfg = getActiveCinemaCandyConfig();
+function updateCandyCell(bIndex, r, c, subField, val) {
+  let cfg = getActiveCinemaCandyConfig();
   if(!cfg.blocks[bIndex].gridValues) cfg.blocks[bIndex].gridValues = {};
   if(!cfg.blocks[bIndex].gridValues[r]) cfg.blocks[bIndex].gridValues[r] = {};
   if(!cfg.blocks[bIndex].gridValues[r][c]) cfg.blocks[bIndex].gridValues[r][c] = { weight: "", taraIdx: 0 };
-
-  if (subField === 'weight') {
-    cfg.blocks[bIndex].gridValues[r][c].weight = n(val);
-  } else if (subField === 'taraIdx') {
-    cfg.blocks[bIndex].gridValues[r][c].taraIdx = parseInt(val) || 0;
-  }
-  
+  if (subField === 'weight') cfg.blocks[bIndex].gridValues[r][c].weight = n(val);
+  else if (subField === 'taraIdx') cfg.blocks[bIndex].gridValues[r][c].taraIdx = parseInt(val) || 0;
   saveCandyConfig();
   renderCandyView();
 }
-
 function updateCandyBuste(idx, field, val) {
-  const cfg = getActiveCinemaCandyConfig();
+  let cfg = getActiveCinemaCandyConfig();
   if(!cfg.buste) cfg.buste = Array(10).fill({kg: 0, sleeve: 0});
   if(!cfg.buste[idx]) cfg.buste[idx] = {kg: 0, sleeve: 0};
   cfg.buste[idx][field] = n(val);
   saveCandyConfig();
 }
 
+/* --- UPDATE HANDLERS POST MIX --- */
+function updatePostMixBlocksCount(val) { getActiveCinemaPostMixConfig().blocksCount = parseInt(val) || 1; savePostMixConfig(); renderPostMixView(); }
+function updatePostMixOrientation(val) { getActiveCinemaPostMixConfig().orientation = val; savePostMixConfig(); renderPostMixView(); }
+function updatePostMixBlockName(bIndex, val) { getActiveCinemaPostMixConfig().blocks[bIndex].name = val; savePostMixConfig(); }
+function updatePostMixBlockDim(bIndex, field, val) {
+  getActiveCinemaPostMixConfig().blocks[bIndex][field] = parseInt(val) || 1;
+  savePostMixConfig();
+  renderPostMixView();
+}
+function updatePostMixCell(bIndex, r, c, subField, val) {
+  let cfg = getActiveCinemaPostMixConfig();
+  if(!cfg.blocks[bIndex].gridValues) cfg.blocks[bIndex].gridValues = {};
+  if(!cfg.blocks[bIndex].gridValues[r]) cfg.blocks[bIndex].gridValues[r] = {};
+  if(!cfg.blocks[bIndex].gridValues[r][c]) cfg.blocks[bIndex].gridValues[r][c] = { weight: "", prodName: "" };
+  if (subField === 'weight') cfg.blocks[bIndex].gridValues[r][c].weight = n(val);
+  else if (subField === 'prodName') cfg.blocks[bIndex].gridValues[r][c].prodName = val;
+  savePostMixConfig();
+  renderPostMixView();
+}
+
 function renderMultiInput(whIdx, code, type, sizeVal) {
   const c = getCount(whIdx, code);
   const arr = c[type];
-  
-  let isDisabled = false;
-  if (type === 'box' || type === 'sleeve') {
-    isDisabled = !(sizeVal && sizeVal > 0);
-  }
-
+  let isDisabled = (type === 'box' || type === 'sleeve') && !(sizeVal && sizeVal > 0);
   const disabledAttr = isDisabled ? 'disabled style="background-color: #e9ecef !important; color: #adb5bd !important; cursor: not-allowed;"' : '';
 
   let html = `<div class="input-scroll-cell" id="container-${code}-${type}">`;
   arr.forEach((val, idx) => {
     html += `<input type="number" step="any" min="0" class="qty-input" value="${val ? val : ''}" ${disabledAttr} oninput="handleInput(${whIdx}, '${code}', '${type}', ${idx}, this.value)">`;
   });
-
   if (!isDisabled && arr.length < MAX_FIELDS) {
     html += `<button type="button" class="btn btn-secondary" style="padding: 2px 6px; font-size: 0.8rem;" onclick="addInputField(${whIdx}, '${code}', '${type}')">＋</button>`;
   }
@@ -964,20 +1010,17 @@ function handleInput(whIdx, code, type, index, val) {
 
     const effEl = $(`eff-${code}`);
     if (effEl) effEl.textContent = fmt(newEff);
-
     const diffEl = $(`diff-${code}`);
     if (diffEl) {
       diffEl.textContent = fmt(newDiff);
       diffEl.className = `num cell-diff ${newDiff === 0 ? 'ok' : 'bad'}`;
     }
-
     const valEl = $(`val-${code}`);
     if (valEl) {
       valEl.textContent = `€ ${fmtMoney(newDiffVal)}`;
       valEl.className = `num grp-valore cell-val ${newDiffVal >= 0 ? 'ok' : 'bad'}`;
     }
   }
-
   recalcKPIs();
 }
 
@@ -991,38 +1034,24 @@ function addInputField(whIdx, code, type) {
 }
 
 function recalcKPIs() {
-  let totAtteso = 0;
-  let totRilevato = 0;
-  let totDiffValore = 0;
-
+  let totAtteso = 0, totRilevato = 0, totDiffValore = 0;
   rows.forEach(r => {
     totAtteso += r.atteso;
     const eff = getGlobalRilevato(r.code, r);
     totRilevato += eff;
     totDiffValore += (eff - r.atteso) * (r.standardCost || 0);
   });
-
   const diffPezzi = totRilevato - totAtteso;
 
   $("kpiAtteso").textContent = fmt(totAtteso);
   $("kpiRilevato").textContent = fmt(totRilevato);
   $("kpiDiffPezzi").textContent = fmt(diffPezzi);
   $("kpiDiffValore").textContent = `€ ${fmtMoney(totDiffValore)}`;
-
-  const diffBox = $("kpiDiffBox");
-  if (diffBox) {
-    diffBox.className = `kpi-card ${diffPezzi === 0 ? 'success' : 'warning'}`;
-  }
-  const valBox = $("kpiValoreBox");
-  if (valBox) {
-    valBox.className = `kpi-card ${totDiffValore >= 0 ? 'success' : 'warning'}`;
-  }
 }
 
 /* ---------------- EXPORT EXCEL ---------------- */
 function exportToExcel() {
   if (!rows.length) { alert("Nessun dato da esportare."); return; }
-
   const exportData = [];
   exportData.push([
     "CODICE", "PRODOTTO", "U.M.", "INIZIALE", "DANNI", "VENDUTO", "ATTESO", 
@@ -1033,26 +1062,12 @@ function exportToExcel() {
     const rilevato = getGlobalRilevato(r.code, r);
     const diff = rilevato - r.atteso;
     const diffVal = diff * (r.standardCost || 0);
-
-    exportData.push([
-      r.code,
-      r.name,
-      r.uom,
-      r.iniziale,
-      r.danni,
-      r.venduto,
-      r.atteso,
-      rilevato,
-      diff,
-      r.standardCost || 0,
-      diffVal
-    ]);
+    exportData.push([r.code, r.name, r.uom, r.iniziale, r.danni, r.venduto, r.atteso, rilevato, diff, r.standardCost || 0, diffVal]);
   });
 
   const ws = XLSX.utils.aoa_to_sheet(exportData);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Inventario Totale");
-  
   const safeName = cinemaName.replace(/[^a-zA-Z0-9]/g, "_");
   XLSX.writeFile(wb, `Inventario_${safeName}.xlsx`);
 }
