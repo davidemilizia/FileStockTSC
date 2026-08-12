@@ -3,9 +3,9 @@ let cinemaName = "TSC Beinasco";
 let warehouses = ["Bar Principale", "Deposito Centrale", "Stand Popcorn"]; 
 let currentTab = 0; 
 let countsData = {}; 
- 
+
 const MAX_FIELDS = 10;
- 
+
 const DEFAULT_CINEMAS = [
   "TSC Beinasco", "TSC Belpasso", "TSC Bologna", "TSC Casamassima", "TSC Catanzaro",
   "TSC Cerro Maggiore", "TSC Corciano", "TSC Firenze", "TSC Genova", "TSC Grosseto",
@@ -16,51 +16,57 @@ const DEFAULT_CINEMAS = [
   "TSC Sestu", "TSC Silea", "TSC Surbo", "TSC Terni", "TSC Torino",
   "TSC Torri di Quartesolo", "TSC Trieste", "TSC Vimercate"
 ];
- 
-/* --- CONFIGURAZIONE DINAMICA GRIGLIA CARAMELLE PER CINEMA --- */
+
+/* --- CONFIGURAZIONE DINAMICA BLOCCHI CARAMELLE PER CINEMA --- */
 let candyGridConfigs = JSON.parse(localStorage.getItem("candy_grid_configs")) || {};
- 
+
 function getActiveCinemaCandyConfig() {
   if (!candyGridConfigs[cinemaName]) {
-    // Configurazione predefinita di default per ogni cinema
     candyGridConfigs[cinemaName] = {
-      columns: 22, 
-      rows: 4, 
-      tareCaselle: [0.37, 0.72, 0.50, 0.00],
-      gridValues: {}, 
-      gridTares: {},
+      blocks: [
+        {
+          id: "espositore",
+          name: "🍬 Espositore Principale",
+          columns: 22,
+          rows: 2,
+          taraBins: [0.37, 0.72],
+          gridValues: {}
+        },
+        {
+          id: "scorte",
+          name: "📦 Scorte / Magazzino",
+          columns: 10,
+          rows: 2,
+          taraBins: [0.50, 0.50],
+          gridValues: {}
+        }
+      ],
       buste: Array(10).fill({kg: 0, sleeve: 0})
     };
   }
-  // Fallback di sicurezza se cambiano le strutture dati
-  if (!candyGridConfigs[cinemaName].tareCaselle) {
-    candyGridConfigs[cinemaName].tareCaselle = [0.37, 0.72, 0.50, 0.00];
-  }
-  if (!candyGridConfigs[cinemaName].gridTares) {
-    candyGridConfigs[cinemaName].gridTares = {};
-  }
   return candyGridConfigs[cinemaName];
 }
- 
+
 function saveCandyConfig() {
- localStorage.setItem("candy_grid_configs", JSON.stringify(candyGridConfigs));
+  localStorage.setItem("candy_grid_configs", JSON.stringify(candyGridConfigs));
 }
- 
+
 function getCandyTotalKg() {
   const cfg = getActiveCinemaCandyConfig();
   let total = 0;
   
-  // Calcolo griglia dinamica basata su selezione tara per cella
-  for(let r=0; r<cfg.rows; r++) {
-    for(let c=0; c<cfg.columns; c++) {
-      let val = n(cfg.gridValues[r]?.[c] || 0);
-      let taraIndex = cfg.gridTares[r]?.[c] ?? 0;
-      let tara = n(cfg.tareCaselle[taraIndex] || 0);
-      total += Math.max(0, val - tara);
-    }
+  if (cfg.blocks && Array.isArray(cfg.blocks)) {
+    cfg.blocks.forEach(block => {
+      for(let r=0; r<block.rows; r++) {
+        for(let c=0; c<block.columns; c++) {
+          let val = n(block.gridValues[r]?.[c] || 0);
+          let tara = n(block.taraBins[r] || 0);
+          total += Math.max(0, val - tara);
+        }
+      }
+    });
   }
-  
-  // Calcolo buste sciolte / kit
+
   if (Array.isArray(cfg.buste)) {
     cfg.buste.forEach(b => {
       total += n(b.kg) + (n(b.sleeve) * 0.1);
@@ -68,15 +74,15 @@ function getCandyTotalKg() {
   }
   return total;
 }
- 
+
 const $ = id => document.getElementById(id);
- 
+
 document.addEventListener("DOMContentLoaded", () => {
- loadSetupFromStorage();
- loadCountsFromStorage();
- updateHeaderTitle();
- 
- $("magFile").addEventListener("change", e => {
+  loadSetupFromStorage();
+  loadCountsFromStorage();
+  updateHeaderTitle();
+
+  $("magFile").addEventListener("change", e => {
     const f = e.target.files[0];
     if (!f) return;
     $("magStatus").textContent = "Lettura del report in corso...";
@@ -89,8 +95,8 @@ document.addEventListener("DOMContentLoaded", () => {
       showError("Errore file Magazzino: " + err.message);
     });
   });
- 
- $("sizeFile").addEventListener("change", e => {
+
+  $("sizeFile").addEventListener("change", e => {
     const f = e.target.files[0];
     if (!f) return;
     $("sizeStatus").textContent = "Lettura anagrafica in corso...";
@@ -103,23 +109,23 @@ document.addEventListener("DOMContentLoaded", () => {
       showError("Errore file SIZE: " + err.message);
     });
   });
- 
- $("search").addEventListener("input", render);
+
+  $("search").addEventListener("input", render);
 });
- 
+
 function toggleFilesSection() {
   const sec = $("filesSection");
   sec.style.display = (sec.style.display === "none") ? "grid" : "none";
 }
- 
+
 function updateHeaderTitle() {
   $("appTitle").textContent = `📊 Gestione Inventario — ${cinemaName}`;
 }
- 
+
 function showError(msg) {
   alert(msg);
 }
- 
+
 /* ---------------- SETUP & STORAGE ---------------- */
 function loadSetupFromStorage() {
   const savedCinema = localStorage.getItem("cinema_info_name");
@@ -129,18 +135,18 @@ function loadSetupFromStorage() {
     try { warehouses = JSON.parse(savedWh); } catch(e){}
   }
 }
- 
+
 function loadCountsFromStorage() {
   const savedCounts = localStorage.getItem("inventory_counts");
   if (savedCounts) {
     try { countsData = JSON.parse(savedCounts); } catch(e){}
   }
 }
- 
+
 function saveCountsToStorage() {
- localStorage.setItem("inventory_counts", JSON.stringify(countsData));
+  localStorage.setItem("inventory_counts", JSON.stringify(countsData));
 }
- 
+
 function resetCounts() {
   if (confirm("Sei sicuro di voler azzerare tutti i conteggi inseriti per tutti i magazzini?")) {
     countsData = {};
@@ -148,12 +154,12 @@ function resetCounts() {
     render();
   }
 }
- 
+
 function handleCinemaSelectChange() {
   const sel = $("cinemaSelect").value;
   $("customCinemaDiv").style.display = (sel === "__CUSTOM__") ? "block" : "none";
 }
- 
+
 function saveWarehousesSetup() {
   const sel = $("cinemaSelect").value;
   if (sel === "__CUSTOM__") {
@@ -163,9 +169,9 @@ function saveWarehousesSetup() {
   } else {
     cinemaName = sel;
   }
- 
- localStorage.setItem("cinema_info_name", cinemaName);
- 
+
+  localStorage.setItem("cinema_info_name", cinemaName);
+
   const inputs = document.querySelectorAll(".wh-input-item");
   const newWh = [];
   inputs.forEach(inp => {
@@ -175,20 +181,20 @@ function saveWarehousesSetup() {
   if (newWh.length === 0) { alert("Inserisci almeno un magazzino!"); return; }
   
   warehouses = newWh;
- localStorage.setItem("cinema_warehouses", JSON.stringify(warehouses));
+  localStorage.setItem("cinema_warehouses", JSON.stringify(warehouses));
   
   updateHeaderTitle();
   currentTab = 0;
   switchTab();
 }
- 
+
 function renderSetupView() {
   $("tabContent").style.display = "none";
   $("setupView").style.display = "block";
   
   const select = $("cinemaSelect");
   select.innerHTML = "";
- 
+
   let matched = false;
   DEFAULT_CINEMAS.forEach(c => {
     const opt = document.createElement("option");
@@ -197,16 +203,16 @@ function renderSetupView() {
     if (c === cinemaName) { opt.selected = true; matched = true; }
     select.appendChild(opt);
   });
- 
+
   const customOpt = document.createElement("option");
   customOpt.value = "__CUSTOM__";
- customOpt.textContent = "➕ Altro / Aggiungi nuovo cinema...";
+  customOpt.textContent = "➕ Altro / Aggiungi nuovo cinema...";
   if (!matched && cinemaName) {
     customOpt.selected = true;
-   $("customCinemaDiv").style.display = "block";
+    $("customCinemaDiv").style.display = "block";
     $("customCinemaInput").value = cinemaName;
   } else {
-   $("customCinemaDiv").style.display = "none";
+    $("customCinemaDiv").style.display = "none";
   }
   select.appendChild(customOpt);
   
@@ -223,7 +229,7 @@ function renderSetupView() {
     container.appendChild(div);
   });
 }
- 
+
 function addWarehouseInput() {
   const container = $("whList");
   const div = document.createElement("div");
@@ -235,12 +241,12 @@ function addWarehouseInput() {
   `;
   container.appendChild(div);
 }
- 
+
 /* ---------------- TABS RENDER ---------------- */
 function renderTabs() {
   const bar = $("tabsBar");
   bar.innerHTML = "";
- 
+
   warehouses.forEach((w, idx) => {
     const btn = document.createElement("button");
     btn.className = `tab-btn ${currentTab === idx ? 'active' : ''}`;
@@ -248,20 +254,20 @@ function renderTabs() {
     btn.onclick = () => { currentTab = idx; switchTab(); };
     bar.appendChild(btn);
   });
- 
+
   const btnCandy = document.createElement("button");
   btnCandy.className = `tab-btn ${currentTab === 'candy' ? 'active' : ''}`;
   btnCandy.textContent = `🍬 Magazzino Caramelle`;
   btnCandy.onclick = () => { currentTab = 'candy'; switchTab(); };
   bar.appendChild(btnCandy);
- 
+
   const totBtn = document.createElement("button");
   totBtn.className = `tab-btn ${currentTab === 'tot' ? 'active' : ''}`;
   totBtn.textContent = `📊 RIEPILOGO TOTALE`;
   totBtn.onclick = () => { currentTab = 'tot'; switchTab(); };
   bar.appendChild(totBtn);
 }
- 
+
 function switchTab() {
   renderTabs();
   if (currentTab === 'setup') {
@@ -272,7 +278,7 @@ function switchTab() {
     render();
   }
 }
- 
+
 /* ---------------- EXCEL PARSING ---------------- */
 function readMatrix(file, preferredSheetName = "") {
   return new Promise((resolve, reject) => {
@@ -288,14 +294,14 @@ function readMatrix(file, preferredSheetName = "") {
           const found = wb.SheetNames.find(s => norm(s).includes(norm(preferredSheetName)));
           if (found) sheetName = found;
         }
-       resolve(XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: "", raw: true }));
+        resolve(XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: "", raw: true }));
       } catch (x) { reject(x); }
     };
     r.onerror = () => reject(new Error("Errore nella lettura fisica del file."));
     r.readAsArrayBuffer(file);
   });
 }
- 
+
 function text(v) { return String(v ?? "").trim(); }
 function cleanCode(val) {
   if (val === null || val === undefined) return "";
@@ -305,7 +311,7 @@ function cleanCode(val) {
   }
   return s;
 }
- 
+
 function n(v) {
   if (typeof v === "number") return v;
   let s = text(v).replace(/\s/g, "").replace(/€/g, "");
@@ -315,38 +321,38 @@ function n(v) {
   const x = parseFloat(s.replace(/[^\d.-]/g, ""));
   return Number.isFinite(x) ? x : 0;
 }
- 
+
 function norm(v) { return text(v).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").toUpperCase(); }
 function esc(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function fmt(val) { return Number(val || 0).toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
 function fmtMoney(val) { return Number(val || 0).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
- 
+
 /* PARSER MAGAZZINO */
 function parseMag(m) {
   const out = [];
- 
+
   for (let i = 0; i < m.length; i++) {
     const r = m[i];
     if (!r || !r.length) continue;
- 
+
     const uom = text(r[2]).trim().toUpperCase();
- 
+
     if (!uom || (uom !== "PZ" && uom !== "KG" && uom !== "LT" && uom !== "CL" && uom !== "GR")) {
       continue;
     }
- 
+
     let name = "";
     if (i + 1 < m.length && m[i + 1]) {
       name = text(m[i + 1][1] || m[i + 1][0]).trim();
     }
- 
+
     if (!name) {
       name = text(r[1]).trim();
     }
- 
+
     const rawCode = text(r[1]).trim();
     const code = cleanCode(rawCode);
- 
+
     const iniziale = n(r[5]);
     const danni = n(r[14]);
     const venduto = n(r[18]);
@@ -355,9 +361,9 @@ function parseMag(m) {
     if (atteso === 0 && (iniziale > 0 || venduto > 0)) {
       atteso = iniziale - danni - venduto;
     }
- 
+
     const standardCost = Math.abs(n(r[29] || r[32] || 0));
- 
+
     out.push({
       rawCode,
       code,
@@ -370,39 +376,39 @@ function parseMag(m) {
       standardCost
     });
   }
- 
+
   if (out.length === 0) {
     throw new Error("Nessun prodotto trovato nel report Magazzino.");
   }
- 
+
   return out;
 }
- 
+
 /* PARSER SIZE & KIT */
 function parseSize(m) {
   const out = [];
   let isKitSection = false;
- 
+
   for (let i = 0; i < m.length; i++) {
     const r = m[i];
     if (!r || !r.length) continue;
- 
+
     const firstVal = text(r[0]);
     const normFirst = norm(firstVal);
- 
+
     if (normFirst === "KIT" || norm(r[1]) === "TIPO" || (normFirst === "" && norm(r[1]) === "TIPO")) {
       isKitSection = true;
       continue;
     }
- 
+
     if (isKitSection) {
       const kitName = firstVal;
       const kitType = text(r[1]); 
       if (!kitName || normFirst === "PRODOTTO" || normFirst === "KIT") continue;
- 
+
       const ingredients = [];
       let currentIngName = "";
- 
+
       for (let c = 2; c < r.length; c++) {
         const val = r[c];
         if (val === null || val === undefined || String(val).trim() === "") continue;
@@ -420,7 +426,7 @@ function parseSize(m) {
           }
         }
       }
- 
+
       out.push({
         code: "KIT_" + cleanCode(kitName),
         name: kitName,
@@ -434,10 +440,10 @@ function parseSize(m) {
       const name = firstVal;
       const normName = norm(name);
       if (!name || name === "#N/D" || normName.includes("PRODOTTO") || normName.includes("DESCRIZIONE") || normName.includes("BOX")) continue;
- 
+
       const boxSize = n(r[1]);
       const sleeveSize = n(r[2]);
- 
+
       let primaryCode = "";
       for (let c = 4; c < r.length; c++) {
         const valStr = text(r[c]);
@@ -447,7 +453,7 @@ function parseSize(m) {
         }
       }
       if (!primaryCode) primaryCode = cleanCode(name);
- 
+
       out.push({
         code: primaryCode,
         rawCode: primaryCode,
@@ -459,13 +465,13 @@ function parseSize(m) {
       });
     }
   }
- 
+
   if (out.length === 0) {
     throw new Error("Nessuna anagrafica SIZE trovata nel file inserito.");
   }
   return out;
 }
- 
+
 /* BUILD E ORDINAMENTO KIT IN FONDO */
 function build() {
   if (!mag.length || !size.length) {
@@ -473,18 +479,18 @@ function build() {
     $("mainStatus").innerHTML = `Magazzino: <b>${mag.length}</b> · SIZE: <b>${size.length}</b><br>Carica entrambi i file per continuare.`;
     return;
   }
- 
+
   const sizeByCode = new Map();
   const sizeByName = new Map();
- 
+
   size.forEach(s => {
     if (s.code) sizeByCode.set(s.code, s);
     if (s.name) sizeByName.set(norm(s.name), s);
   });
- 
+
   rows = mag.map(x => {
     let s = sizeByCode.get(x.code) || sizeByName.get(norm(x.name)) || {};
- 
+
     return { 
       ...x, 
       boxSize: s.boxSize || 0, 
@@ -493,7 +499,7 @@ function build() {
       ingredients: s.ingredients || []
     };
   });
- 
+
   size.forEach(s => {
     if (s.isKit) {
       const exists = rows.some(r => norm(r.name) === norm(s.name));
@@ -516,24 +522,24 @@ function build() {
       }
     }
   });
- 
+
   rows.sort((a, b) => {
     if (a.isKit && !b.isKit) return 1;
     if (!a.isKit && b.isKit) return -1;
     return a.name.localeCompare(b.name);
   });
- 
+
   $("filesSection").style.display = "none";
   $("mainStatus").style.display = "none";
   $("setupView").style.display = "none";
   $("tabContent").style.display = "block";
- 
+
   if (typeof currentTab === 'string' && currentTab !== 'tot' && currentTab !== 'candy') currentTab = 0;
- 
+
   renderTabs();
   render();
 }
- 
+
 /* ---------------- DATA CALCULATIONS ---------------- */
 function getCount(whIdx, code) {
   if (!countsData[whIdx]) countsData[whIdx] = {};
@@ -546,9 +552,9 @@ function getCount(whIdx, code) {
   
   return c;
 }
- 
+
 function sumArr(arr) { return arr.reduce((a, b) => a + n(b), 0); }
- 
+
 function getKitContributionDetail(productName, productCode) {
   let kitContribution = 0;
   
@@ -556,7 +562,7 @@ function getKitContributionDetail(productName, productCode) {
   
   const normProdName = cleanStr(productName);
   const normProdCode = cleanCode(productCode);
- 
+
   rows.forEach(rowItem => {
     if (rowItem.isKit && rowItem.ingredients && rowItem.ingredients.length > 0) {
       rowItem.ingredients.forEach(ing => {
@@ -565,7 +571,7 @@ function getKitContributionDetail(productName, productCode) {
         
         const matchCode = (normProdCode && normIngCode && normProdCode === normIngCode);
         const matchName = (normProdName.includes(normIngName) || normIngName.includes(normProdName));
- 
+
         if (matchCode || matchName) {
           warehouses.forEach((_, wIdx) => {
             const kitCounts = getCount(wIdx, rowItem.code);
@@ -580,10 +586,10 @@ function getKitContributionDetail(productName, productCode) {
       });
     }
   });
- 
+
   return kitContribution;
 }
- 
+
 function getGlobalRilevato(code, r) {
   let totBox = 0, totSleeve = 0, totSfuso = 0;
   warehouses.forEach((_, idx) => {
@@ -598,25 +604,25 @@ function getGlobalRilevato(code, r) {
   if (norm(r.name).includes("CARAMELLE") && norm(r.name).includes("AERMONT")) {
     basePezzi += getCandyTotalKg();
   }
- 
+
   return basePezzi + getKitContributionDetail(r.name, r.code);
 }
- 
+
 /* ---------------- TABLE RENDER & MAG. CARAMELLE ---------------- */
 function render() {
   if (currentTab === 'setup') return;
- 
+
   if (currentTab === 'candy') {
     renderCandyView();
     return;
   }
- 
+
   const q = norm($("search").value);
   const data = rows.filter(x => norm(x.name).includes(q) || norm(x.code).includes(q));
   $("count").textContent = `${data.length} prodotti`;
- 
+
   const isTotTab = (currentTab === 'tot');
- 
+
   $("thead").innerHTML = `
     <tr style="position: sticky; top: 0; z-index: 20; background: #212529;">
       <th colspan="2" style="background: #212529; color: white;">PRODOTTO</th>
@@ -647,9 +653,9 @@ function render() {
       <th class="num grp-valore" style="background: #ffcdd2; color: #b71c1c;">Diff. Valore</th>
     </tr>
   `;
- 
+
   $("tbody").innerHTML = "";
- 
+
   data.forEach(r => {
     const tr = document.createElement("tr");
     
@@ -657,7 +663,7 @@ function render() {
       tr.style.backgroundColor = "#e3f2fd";
       tr.style.borderLeft = "4px solid #1976d2";
     }
- 
+
     let totBoxLocal = 0, totSleeveLocal = 0, totSfusoLocal = 0;
     if (isTotTab) {
       warehouses.forEach((_, wIdx) => {
@@ -672,14 +678,14 @@ function render() {
       totSleeveLocal = sumArr(c.sleeve);
       totSfusoLocal = sumArr(c.sfuso);
     }
- 
+
     const baseRilevato = (totBoxLocal * r.boxSize) + (totSleeveLocal * r.sleeveSize) + totSfusoLocal;
     const kitPart = getKitContributionDetail(r.name, r.code);
     
     const effettivoTotaleComplesso = getGlobalRilevato(r.code, r);
     const diffTotale = effettivoTotaleComplesso - r.atteso;
     const diffValore = diffTotale * (r.standardCost || 0);
- 
+
     tr.innerHTML = `
       <td style="${r.isKit ? 'font-weight:bold; color:#0d47a1;' : ''}">${r.isKit ? '📦 ' : ''}${esc(r.name)}</td>
       <td>${esc(r.uom)}</td>
@@ -703,142 +709,120 @@ function render() {
       <td class="num grp-valore">€ ${fmtMoney(r.standardCost || 0)}</td>
       <td class="num grp-valore cell-val ${diffValore >= 0 ? 'ok' : 'bad'}" id="val-${r.code}">€ ${fmtMoney(diffValore)}</td>
     `;
- 
+
     $("tbody").appendChild(tr);
   });
- 
+
   recalcKPIs();
 }
- 
+
 function renderCandyView() {
   const cfg = getActiveCinemaCandyConfig();
   $("count").textContent = `Gestione Caramelle (${cinemaName})`;
   
   $("thead").innerHTML = `
     <tr>
-      <th style="background: #212529; color: white; padding: 12px;">🍬 Magazzino Caramelle Dedicato — ${esc(cinemaName)}</th>
+      <th style="background: #212529; color: white; padding: 12px;">🍬 Magazzino Caramelle a Blocchi — ${esc(cinemaName)}</th>
     </tr>
   `;
- 
-  let html = `<tr><td style="padding: 20px; background: #f8f9fa;">
-    <!-- PARAMETRI GRIGLIA E TARE -->
-    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 30px; align-items: center;">
-      <div>
-        <h4 style="color: #1a237e; margin-bottom: 8px;">Dimensioni Griglia</h4>
-        <div style="display: flex; gap: 15px;">
-          <label>Colonne: <input type="number" id="candyCols" value="${cfg.columns}" style="width: 60px; padding: 4px;" onchange="updateCandyDim()"></label>
-          <label>Righe: <input type="number" id="candyRows" value="${cfg.rows}" style="width: 60px; padding: 4px;" onchange="updateCandyDim()"></label>
-        </div>
-      </div>
-      
-      <div style="flex: 1; min-width: 300px;">
-        <h4 style="color: #1a237e; margin-bottom: 8px;">Caselle Tare Predefinite (Kg)</h4>
-        <div style="display: flex; gap: 10px;">
-          ${[0, 1, 2, 3].map(i => `
-            <div style="text-align: center;">
-              <span style="font-size: 0.75rem; font-weight: bold; color: #666; display: block;">Tara ${i + 1}</span>
-              <input type="number" step="any" value="${cfg.tareCaselle[i] ?? 0}" style="width: 75px; padding: 5px; text-align: center; font-weight: bold; border: 1px solid #ccc; border-radius: 4px;" onchange="updateCasellaTara(${i}, this.value)">
-            </div>
-          `).join('')}
-        </div>
-      </div>
 
-      <div style="font-size: 1.4rem; font-weight: bold; color: #0d47a1; text-align: right;">
-        Totale Caramelle: <span id="candyTotalDisplay">${fmt(getCandyTotalKg())}</span> Kg
+  let html = `<tr><td style="padding: 20px; background: #f8f9fa;">`;
+
+  html += `
+    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h3 style="margin: 0; color: #333;">Totale Generale Caramelle</h3>
+        <small style="color: #666;">Somma di tutti i blocchi e delle buste sciolte</small>
       </div>
+      <div style="font-size: 1.5rem; font-weight: bold; color: #0d47a1;">${fmt(getCandyTotalKg())} Kg</div>
     </div>
- 
-    <!-- GRIGLIA DI CONTEGGIO -->
-    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); overflow-x: auto;">
-      <h4 style="margin-bottom: 10px;">Inserimento Pesi Lordi & Selezione Tara</h4>
-      <table style="width:100%; border-collapse: collapse; margin-top: 10px;">
-        <thead>
-          <tr style="background: #343a40; color: white;">
-            <th style="padding: 8px; width: 80px;">Riga</th>`;
-  for(let c=0; c<cfg.columns; c++) {
-    html += `<th style="padding: 8px; text-align:center;">Col ${c+1}</th>`;
+  `;
+
+  if (cfg.blocks && Array.isArray(cfg.blocks)) {
+    cfg.blocks.forEach((block, bIndex) => {
+      html += `
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px;">
+          <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f1f3f5; padding-bottom: 10px;">
+            <h4 style="margin: 0; color: #1976d2;">${esc(block.name)}</h4>
+            <div>Colonne: <input type="number" value="${block.columns}" style="width: 60px; padding: 4px;" onchange="updateBlockDim(${bIndex}, 'columns', this.value)"></div>
+            <div>Righe: <input type="number" value="${block.rows}" style="width: 60px; padding: 4px;" onchange="updateBlockDim(${bIndex}, 'rows', this.value)"></div>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table style="width:100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: #343a40; color: white;">
+                  <th style="padding: 8px;">Riga / Tara (Kg)</th>`;
+      for(let c=0; c<block.columns; c++) {
+        html += `<th style="padding: 8px; text-align:center;">Col ${c+1}</th>`;
+      }
+      html += `</tr></thead><tbody>`;
+
+      for(let r=0; r<block.rows; r++) {
+        let taraVal = block.taraBins[r] ?? 0;
+        html += `<tr>
+          <td style="background: #e9ecef; font-weight: bold; padding: 8px;">
+            Riga ${r+1} <br>
+            <small>Tara: <input type="number" step="any" value="${taraVal}" style="width:60px;" onchange="updateBlockTara(${bIndex}, ${r}, this.value)"></small>
+          </td>`;
+        for(let c=0; c<block.columns; c++) {
+          let val = block.gridValues[r]?.[c] || "";
+          html += `<td style="border: 1px solid #dee2e6; padding: 4px; text-align: center;">
+            <input type="number" step="any" class="qty-input" value="${val}" style="width: 55px;" onchange="updateBlockCell(${bIndex}, ${r}, ${c}, this.value)">
+          </td>`;
+        }
+        html += `</tr>`;
+      }
+      html += `</tbody></table></div></div>`;
+    });
   }
-  html += `</tr></thead><tbody>`;
- 
-  for(let r=0; r<cfg.rows; r++) {
-    html += `<tr>
-      <td style="background: #e9ecef; font-weight: bold; padding: 8px; text-align: center;">Riga ${r+1}</td>`;
-    for(let c=0; c<cfg.columns; c++) {
-      let val = cfg.gridValues[r]?.[c] || "";
-      let selectedTaraIdx = cfg.gridTares[r]?.[c] ?? 0;
-      html += `<td style="border: 1px solid #dee2e6; padding: 6px; text-align: center; min-width: 75px;">
-        <!-- Input Peso Lordo con placeholder forzato a vuoto -->
-        <input type="number" step="any" class="qty-input" value="${val}" placeholder="" style="width: 65px; font-size: 0.9rem; margin-bottom: 4px;" oninput="updateCandyCell(${r}, ${c}, this.value)">
-        <!-- Menu a tendina con Solo il Valore Numerico della Tara -->
-        <select style="width: 65px; font-size: 0.75rem; padding: 2px; border-radius: 3px; border: 1px solid #bbb;" onchange="updateCellTaraSelection(${r}, ${c}, this.value)">
-          ${[0, 1, 2, 3].map(i => `
-            <option value="${i}" ${selectedTaraIdx == i ? 'selected' : ''}>${cfg.tareCaselle[i] || 0}</option>
-          `).join('')}
-        </select>
-      </td>`;
-    }
-    html += `</tr>`;
-  }
-  html += `</tbody></table></div>`;
- 
-  // Sezione buste sciolte
+
   html += `<div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px;">
-    <h4>Buste / Sacchetti Sciolti</h4>
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">`;
+    <h4>📦 Buste / Sacchetti Sciolti</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-top: 10px;">`;
   
   for(let i=0; i<10; i++) {
     let b = cfg.buste[i] || {kg: 0, sleeve: 0};
     html += `<div style="background: #f1f3f5; padding: 10px; border-radius: 6px;">
       <strong>Elemento ${i+1}</strong><br>
-      Kg: <input type="number" step="any" value="${b.kg || ''}" placeholder="" style="width:70px;" oninput="updateCandyBuste(${i}, 'kg', this.value)"><br>
-      Sleeve: <input type="number" step="any" value="${b.sleeve || ''}" placeholder="" style="width:70px; margin-top:4px;" oninput="updateCandyBuste(${i}, 'sleeve', this.value)">
+      Kg: <input type="number" step="any" value="${b.kg || ''}" style="width:70px;" onchange="updateCandyBuste(${i}, 'kg', this.value)"><br>
+      Sleeve: <input type="number" step="any" value="${b.sleeve || ''}" style="width:70px; margin-top:4px;" onchange="updateCandyBuste(${i}, 'sleeve', this.value)">
     </div>`;
   }
   html += `</div></div></td></tr>`;
- 
+
   $("tbody").innerHTML = html;
 }
- 
-function updateCandyDim() {
+
+function updateBlockDim(bIndex, field, val) {
   const cfg = getActiveCinemaCandyConfig();
-  cfg.columns = parseInt($("candyCols").value) || 22;
-  cfg.rows = parseInt($("candyRows").value) || 4;
+  cfg.blocks[bIndex][field] = parseInt(val) || 1;
   saveCandyConfig();
   renderCandyView();
 }
- 
-function updateCasellaTara(index, val) {
+
+function updateBlockTara(bIndex, r, val) {
   const cfg = getActiveCinemaCandyConfig();
-  cfg.tareCaselle[index] = n(val);
+  if(!cfg.blocks[bIndex].taraBins) cfg.blocks[bIndex].taraBins = [];
+  cfg.blocks[bIndex].taraBins[r] = n(val);
   saveCandyConfig();
-  renderCandyView(); 
 }
- 
-function updateCellTaraSelection(r, c, taraIndex) {
+
+function updateBlockCell(bIndex, r, c, val) {
   const cfg = getActiveCinemaCandyConfig();
-  if (!cfg.gridTares[r]) cfg.gridTares[r] = {};
-  cfg.gridTares[r][c] = parseInt(taraIndex);
+  if(!cfg.blocks[bIndex].gridValues[r]) cfg.blocks[bIndex].gridValues[r] = {};
+  cfg.blocks[bIndex].gridValues[r][c] = n(val);
   saveCandyConfig();
-  $("candyTotalDisplay").textContent = fmt(getCandyTotalKg());
 }
- 
-function updateCandyCell(r, c, val) {
-  const cfg = getActiveCinemaCandyConfig();
-  if(!cfg.gridValues[r]) cfg.gridValues[r] = {};
-  cfg.gridValues[r][c] = n(val);
-  saveCandyConfig();
-  $("candyTotalDisplay").textContent = fmt(getCandyTotalKg());
-}
- 
+
 function updateCandyBuste(idx, field, val) {
   const cfg = getActiveCinemaCandyConfig();
   if(!cfg.buste) cfg.buste = Array(10).fill({kg: 0, sleeve: 0});
   if(!cfg.buste[idx]) cfg.buste[idx] = {kg: 0, sleeve: 0};
   cfg.buste[idx][field] = n(val);
   saveCandyConfig();
-  $("candyTotalDisplay").textContent = fmt(getCandyTotalKg());
 }
- 
+
 function renderMultiInput(whIdx, code, type, sizeVal) {
   const c = getCount(whIdx, code);
   const arr = c[type];
@@ -847,51 +831,51 @@ function renderMultiInput(whIdx, code, type, sizeVal) {
   if (type === 'box' || type === 'sleeve') {
     isDisabled = !(sizeVal && sizeVal > 0);
   }
- 
+
   const disabledAttr = isDisabled ? 'disabled style="background-color: #e9ecef !important; color: #adb5bd !important; cursor: not-allowed;"' : '';
- 
+
   let html = `<div class="input-scroll-cell" id="container-${code}-${type}">`;
   arr.forEach((val, idx) => {
     html += `<input type="number" step="any" min="0" class="qty-input" value="${val ? val : ''}" ${disabledAttr} oninput="handleInput(${whIdx}, '${code}', '${type}', ${idx}, this.value)">`;
   });
- 
+
   if (!isDisabled && arr.length < MAX_FIELDS) {
     html += `<button type="button" class="btn btn-secondary" style="padding: 2px 6px; font-size: 0.8rem;" onclick="addInputField(${whIdx}, '${code}', '${type}')">＋</button>`;
   }
   html += `</div>`;
   return html;
 }
- 
+
 function handleInput(whIdx, code, type, index, val) {
   const c = getCount(whIdx, code);
   c[type][index] = n(val);
   saveCountsToStorage();
- 
+
   const r = rows.find(x => x.code === code);
   if (r) {
     const newEff = getGlobalRilevato(code, r);
     const newDiff = newEff - r.atteso;
     const newDiffVal = newDiff * (r.standardCost || 0);
- 
+
     const effEl = $(`eff-${code}`);
     if (effEl) effEl.textContent = fmt(newEff);
- 
+
     const diffEl = $(`diff-${code}`);
     if (diffEl) {
       diffEl.textContent = fmt(newDiff);
       diffEl.className = `num cell-diff ${newDiff === 0 ? 'ok' : 'bad'}`;
     }
- 
+
     const valEl = $(`val-${code}`);
     if (valEl) {
       valEl.textContent = `€ ${fmtMoney(newDiffVal)}`;
       valEl.className = `num grp-valore cell-val ${newDiffVal >= 0 ? 'ok' : 'bad'}`;
     }
   }
- 
+
   recalcKPIs();
 }
- 
+
 function addInputField(whIdx, code, type) {
   const c = getCount(whIdx, code);
   if (c[type].length < MAX_FIELDS) {
@@ -900,26 +884,26 @@ function addInputField(whIdx, code, type) {
     render();
   }
 }
- 
+
 function recalcKPIs() {
   let totAtteso = 0;
   let totRilevato = 0;
   let totDiffValore = 0;
- 
+
   rows.forEach(r => {
     totAtteso += r.atteso;
     const eff = getGlobalRilevato(r.code, r);
     totRilevato += eff;
     totDiffValore += (eff - r.atteso) * (r.standardCost || 0);
   });
- 
+
   const diffPezzi = totRilevato - totAtteso;
- 
+
   $("kpiAtteso").textContent = fmt(totAtteso);
   $("kpiRilevato").textContent = fmt(totRilevato);
   $("kpiDiffPezzi").textContent = fmt(diffPezzi);
   $("kpiDiffValore").textContent = `€ ${fmtMoney(totDiffValore)}`;
- 
+
   const diffBox = $("kpiDiffBox");
   if (diffBox) {
     diffBox.className = `kpi-card ${diffPezzi === 0 ? 'success' : 'warning'}`;
@@ -929,22 +913,22 @@ function recalcKPIs() {
     valBox.className = `kpi-card ${totDiffValore >= 0 ? 'success' : 'warning'}`;
   }
 }
- 
+
 /* ---------------- EXPORT EXCEL ---------------- */
 function exportToExcel() {
   if (!rows.length) { alert("Nessun dato da esportare."); return; }
- 
+
   const exportData = [];
   exportData.push([
-   "CODICE", "PRODOTTO", "U.M.", "INIZIALE", "DANNI", "VENDUTO", "ATTESO", 
+    "CODICE", "PRODOTTO", "U.M.", "INIZIALE", "DANNI", "VENDUTO", "ATTESO", 
     "RILEVATO GLOBALE", "DIFFERENZA PEZZI", "COSTO UNIT.", "DIFFERENZA VALORE"
   ]);
- 
+
   rows.forEach(r => {
     const rilevato = getGlobalRilevato(r.code, r);
     const diff = rilevato - r.atteso;
     const diffVal = diff * (r.standardCost || 0);
- 
+
     exportData.push([
       r.code,
       r.name,
@@ -959,7 +943,7 @@ function exportToExcel() {
       diffVal
     ]);
   });
- 
+
   const ws = XLSX.utils.aoa_to_sheet(exportData);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Inventario Totale");
