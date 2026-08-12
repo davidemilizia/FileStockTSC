@@ -106,7 +106,6 @@ function savePostMixConfig() {
 function getPostMixProductTotals() {
   const cfg = getActiveCinemaPostMixConfig();
   let totals = {}; 
-  
   if (cfg.blocks && Array.isArray(cfg.blocks)) {
     cfg.blocks.forEach(block => {
       let rowsCount = parseInt(block.rows) || 0;
@@ -117,14 +116,55 @@ function getPostMixProductTotals() {
           if (cellData && cellData.prodName) {
             let weight = n(cellData.weight || 0);
             let prodName = cellData.prodName;
-            
             let pmItem = postMixProducts.find(p => p.name === prodName);
             let taraVal = pmItem ? n(pmItem.tara) : 0;
-            
             let netKg = Math.max(0, weight - taraVal);
             totals[prodName] = (totals[prodName] || 0) + netKg;
           }
         }
+      }
+    });
+  }
+  return totals;
+}
+
+/* --- CONFIGURAZIONE DISTRIBUTORI --- */
+let distributorGridConfigs = JSON.parse(localStorage.getItem("distributor_grid_configs")) || {};
+
+function getActiveCinemaDistributorConfig() {
+  if (!distributorGridConfigs[cinemaName]) {
+    distributorGridConfigs[cinemaName] = {
+      distributorsCount: 2,
+      distributors: [
+        { id: "dist_0", name: "MARS 1-9", date: "13/08/2026", fondoResti: 35, rows: Array(20).fill().map(() => ({ product: "", stockIniziale: "", ins: ["", "", "", "", ""], contaFinale: "", prezzoVendita: "" })) },
+        { id: "dist_1", name: "MARS 10-18", date: "13/08/2026", fondoResti: 35, rows: Array(20).fill().map(() => ({ product: "", stockIniziale: "", ins: ["", "", "", "", ""], contaFinale: "", prezzoVendita: "" })) }
+      ]
+    };
+  }
+  let cfg = distributorGridConfigs[cinemaName];
+  if (cfg.distributorsCount === undefined) cfg.distributorsCount = cfg.distributors ? cfg.distributors.length : 2;
+  if (!cfg.distributors || !Array.isArray(cfg.distributors)) {
+    cfg.distributors = [];
+  }
+  return cfg;
+}
+
+function saveDistributorConfig() {
+  localStorage.setItem("distributor_grid_configs", JSON.stringify(distributorGridConfigs));
+}
+
+function getDistributorsContaFinaleTotals() {
+  const cfg = getActiveCinemaDistributorConfig();
+  let totals = {};
+  if (cfg.distributors && Array.isArray(cfg.distributors)) {
+    cfg.distributors.forEach(d => {
+      if (d.rows && Array.isArray(d.rows)) {
+        d.rows.forEach(r => {
+          if (r.product && r.contaFinale !== "" && !isNaN(n(r.contaFinale))) {
+            let prodNameNorm = norm(r.product);
+            totals[prodNameNorm] = (totals[prodNameNorm] || 0) + n(r.contaFinale);
+          }
+        });
       }
     });
   }
@@ -317,6 +357,12 @@ function renderTabs() {
   btnPostMix.onclick = () => { currentTab = 'postmix'; switchTab(); };
   bar.appendChild(btnPostMix);
 
+  const btnDist = document.createElement("button");
+  btnDist.className = `tab-btn ${currentTab === 'distributors' ? 'active' : ''}`;
+  btnDist.textContent = `🍫 Distributori`;
+  btnDist.onclick = () => { currentTab = 'distributors'; switchTab(); };
+  bar.appendChild(btnDist);
+
   const totBtn = document.createElement("button");
   totBtn.className = `tab-btn ${currentTab === 'tot' ? 'active' : ''}`;
   totBtn.textContent = `📊 RIEPILOGO TOTALE`;
@@ -335,7 +381,7 @@ function switchTab() {
   }
 }
 
-/* ---------------- EXCEL PARSING (MULTI-FOGLIO) ---------------- */
+/* ---------------- EXCEL PARSING ---------------- */
 function readMatrix(file) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -344,16 +390,11 @@ function readMatrix(file) {
         if (typeof XLSX === "undefined") throw new Error("Libreria XLSX non presente.");
         const wb = XLSX.read(e.target.result, { type: "array", cellDates: false });
         if (!wb.SheetNames || !wb.SheetNames.length) throw new Error("Nessun foglio trovato.");
-        
         let combinedMatrix = [];
-        // Legge tutti i fogli presenti nel workbook Excel e li unisce in un'unica matrice
         wb.SheetNames.forEach(sheetName => {
           const sheetData = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: "", raw: true });
-          if (sheetData && sheetData.length > 0) {
-            combinedMatrix = combinedMatrix.concat(sheetData);
-          }
+          if (sheetData && sheetData.length > 0) combinedMatrix = combinedMatrix.concat(sheetData);
         });
-
         resolve(combinedMatrix);
       } catch (x) { reject(x); }
     };
@@ -400,13 +441,11 @@ function parseMag(m) {
 
     const rawCode = text(r[1]).trim();
     const code = cleanCode(rawCode);
-
     const iniziale = n(r[5]);
     const danni = n(r[14]);
     const venduto = n(r[18]);
     let atteso = n(r[23]);
     if (atteso === 0 && (iniziale > 0 || venduto > 0)) atteso = iniziale - danni - venduto;
-
     const standardCost = Math.abs(n(r[29] || r[32] || 0));
 
     out.push({ rawCode, code, name, uom, iniziale, danni, venduto, atteso, standardCost });
@@ -424,7 +463,6 @@ function parseSize(m) {
   for (let i = 0; i < m.length; i++) {
     const r = m[i];
     if (!r || !r.length) continue;
-
     const firstVal = text(r[0]);
     const normFirst = norm(firstVal);
 
@@ -469,7 +507,6 @@ function parseSize(m) {
       });
     } else if (section === "POSTMIX") {
       const prodName = firstVal;
-      // Nel foglio POSTMIX la tara si trova nella terza colonna (indice 2)
       const taraVal = n(r[2] !== undefined && r[2] !== "" ? r[2] : r[1]);
       if (!prodName || normFirst === "PRODOTTO" || normFirst === "TARA") continue;
       postMixOut.push({ name: prodName, tara: taraVal });
@@ -480,7 +517,6 @@ function parseSize(m) {
 
       const boxSize = n(r[1]);
       const sleeveSize = n(r[2]);
-
       let primaryCode = "";
       for (let c = 4; c < r.length; c++) {
         const valStr = text(r[c]);
@@ -499,11 +535,9 @@ function parseSize(m) {
       });
     }
   }
-
   return { size: sizeOut, postMix: postMixOut };
 }
 
-/* BUILD E ORDINAMENTO KIT IN FONDO */
 function build() {
   if (!mag.length || !size.length) {
     $("mainStatus").style.display = "block";
@@ -554,7 +588,7 @@ function build() {
   $("setupView").style.display = "none";
   $("tabContent").style.display = "block";
 
-  if (typeof currentTab === 'string' && currentTab !== 'tot' && currentTab !== 'candy' && currentTab !== 'postmix') currentTab = 0;
+  if (typeof currentTab === 'string' && currentTab !== 'tot' && currentTab !== 'candy' && currentTab !== 'postmix' && currentTab !== 'distributors') currentTab = 0;
 
   renderTabs();
   render();
@@ -629,14 +663,28 @@ function getGlobalRilevato(code, r) {
     }
   }
 
+  // Integrazione Conta Finale Distributori
+  const distTotals = getDistributorsContaFinaleTotals();
+  if (distTotals[rNameClean]) {
+    basePezzi += distTotals[rNameClean];
+  } else {
+    for (let [dName, dVal] of Object.entries(distTotals)) {
+      if (rNameClean.includes(dName) || dName.includes(rNameClean)) {
+        basePezzi += dVal;
+        break;
+      }
+    }
+  }
+
   return basePezzi + getKitContributionDetail(r.name, r.code);
 }
 
-/* ---------------- TABLE RENDER & MAGAZZINI SPECIALI ---------------- */
+/* ---------------- TABLE RENDER & SPECIAL VIEWS ---------------- */
 function render() {
   if (currentTab === 'setup') return;
   if (currentTab === 'candy') { renderCandyView(); return; }
   if (currentTab === 'postmix') { renderPostMixView(); return; }
+  if (currentTab === 'distributors') { renderDistributorsView(); return; }
 
   const q = norm($("search").value);
   const data = rows.filter(x => norm(x.name).includes(q) || norm(x.code).includes(q));
@@ -730,227 +778,215 @@ function render() {
   recalcKPIs();
 }
 
-/* --- RENDER MAGAZZINO CARAMELLE --- */
-function renderCandyView() {
-  const cfg = getActiveCinemaCandyConfig();
-  $("count").textContent = `Magazzino Caramelle (${cinemaName})`;
-  $("thead").innerHTML = `<tr><th style="background: #212529; color: white; padding: 12px;">🍬 Magazzino Caramelle a Blocchi — ${esc(cinemaName)}</th></tr>`;
+/* --- RENDER SCHERMATA DISTRIBUTORI --- */
+function renderDistributorsView() {
+  const cfg = getActiveCinemaDistributorConfig();
+  $("count").textContent = `Gestione Distributori (${cinemaName})`;
+  $("thead").innerHTML = `<tr><th style="background: #212529; color: white; padding: 12px;">🍫 Gestione Distributori — ${esc(cinemaName)}</th></tr>`;
 
   let html = `<tr><td style="padding: 20px; background: #f8f9fa;">`;
   html += `
     <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: center;">
       <div>
-        <h3 style="margin: 0; color: #333;">Totale Generale Caramelle</h3>
-        <div style="font-size: 1.5rem; font-weight: bold; color: #0d47a1; margin-top: 5px;">${fmt(getCandyTotalKg())} Kg</div>
+        <h3 style="margin: 0; color: #333;">Configurazione Griglie Distributori</h3>
+        <p style="font-size: 0.9rem; color: #666; margin-top: 4px;">Scegli quanti distributori visualizzare in verticale e compila i campi.</p>
       </div>
-      <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-        <div>
-          <label style="font-size: 0.85rem; font-weight: bold; display: block; color: #555;">N. Blocchi</label>
-          <select style="padding: 6px; border-radius: 4px; border: 1px solid #ccc;" onchange="updateCandyBlocksCount(this.value)">
-            ${[1, 2, 3, 4, 5, 6].map(num => `<option value="${num}" ${cfg.blocksCount === num ? 'selected' : ''}>${num} Blocchi</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <label style="font-size: 0.85rem; font-weight: bold; display: block; color: #555;">Disposizione</label>
-          <select style="padding: 6px; border-radius: 4px; border: 1px solid #ccc;" onchange="updateCandyOrientation(this.value)">
-            <option value="vertical" ${cfg.orientation === 'vertical' ? 'selected' : ''}>In Verticale</option>
-            <option value="horizontal" ${cfg.orientation === 'horizontal' ? 'selected' : ''}>In Orizzontale</option>
-          </select>
-        </div>
-      </div>
-    </div>
-    <div style="background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px;">
-      <h4 style="margin: 0 0 10px 0; color: #333; font-size: 1rem;">⚖️ Configurazione delle 4 Tare (Kg)</h4>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">
-        ${[0, 1, 2, 3].map(i => `
-          <div style="background: #f1f3f5; padding: 8px 12px; border-radius: 6px;">
-            <label style="font-size: 0.8rem; font-weight: bold; color: #495057;">Tara ${i+1}:</label>
-            <input type="number" step="any" value="${cfg.tares[i] ?? 0}" style="width: 100%; padding: 4px; margin-top: 4px;" onchange="updateCandyTaraVal(${i}, this.value)">
-          </div>
-        `).join('')}
+      <div>
+        <label style="font-size: 0.85rem; font-weight: bold; display: block; color: #555;">N. Griglie Distributori</label>
+        <select style="padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 1rem;" onchange="updateDistributorsCount(this.value)">
+          ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => `<option value="${num}" ${cfg.distributorsCount === num ? 'selected' : ''}>${num} Distributori</option>`).join('')}
+        </select>
       </div>
     </div>
   `;
 
-  let containerStyle = cfg.orientation === 'horizontal' 
-    ? "display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-bottom: 20px;"
-    : "display: flex; flex-direction: column; gap: 20px; margin-bottom: 20px;";
-
-  html += `<div style="${containerStyle}">`;
-  let activeBlocksCount = parseInt(cfg.blocksCount) || cfg.blocks.length;
-  for (let bIndex = 0; bIndex < activeBlocksCount; bIndex++) {
-    if (!cfg.blocks[bIndex]) {
-      cfg.blocks[bIndex] = { id: `block_${bIndex}`, name: `🍬 Blocco ${bIndex+1}`, columns: 10, rows: 2, gridValues: {} };
+  let activeCount = parseInt(cfg.distributorsCount) || cfg.distributors.length;
+  
+  for (let dIdx = 0; dIdx < activeCount; dIdx++) {
+    if (!cfg.distributors[dIdx]) {
+      cfg.distributors[dIdx] = { 
+        id: `dist_${dIdx}`, 
+        name: `MARS ${dIdx * 9 + 1}-${(dIdx + 1) * 9}`, 
+        date: "13/08/2026", 
+        fondoResti: 35, 
+        rows: Array(20).fill().map(() => ({ product: "", stockIniziale: "", ins: ["", "", "", "", ""], contaFinale: "", prezzoVendita: "" })) 
+      };
     }
-    let block = cfg.blocks[bIndex];
-    let cols = parseInt(block.columns) || 1;
-    let rowsCount = parseInt(block.rows) || 1;
+    let dist = cfg.distributors[dIdx];
+
+    // Calcolo incasso totale del distributore
+    let totalIncassoDist = 0;
+    dist.rows.forEach(r => {
+      let stockIni = n(r.stockIniziale);
+      let sumIns = r.ins.reduce((acc, val) => acc + n(val), 0);
+      let contaFin = n(r.contaFinale);
+      let venduto = (stockIni + sumIns) - contaFin;
+      if (venduto < 0) venduto = 0;
+      let prezzo = n(r.prezzoVendita);
+      totalIncassoDist += venduto * prezzo;
+    });
 
     html += `
-      <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-        <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f1f3f5; padding-bottom: 10px; flex-wrap: wrap;">
-          <input type="text" value="${esc(block.name)}" style="font-weight: bold; color: #1976d2; font-size: 1.1rem; border: 1px solid transparent; background: transparent; flex: 1;" onchange="updateCandyBlockName(${bIndex}, this.value)">
-          <div>Colonne: <input type="number" value="${cols}" style="width: 55px; padding: 4px;" onchange="updateCandyBlockDim(${bIndex}, 'columns', this.value)"></div>
-          <div>Righe: <input type="number" value="${rowsCount}" style="width: 55px; padding: 4px;" onchange="updateCandyBlockDim(${bIndex}, 'rows', this.value)"></div>
+      <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 30px;">
+        <!-- Testata Distributore (come in foto) -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.9rem;">
+          <tr>
+            <td style="background: #e9ecef; font-weight: bold; width: 15%; text-align: right; padding: 6px;">Data:</td>
+            <td style="background: #ffeb3b; font-weight: bold; width: 25%; text-align: center; padding: 6px;">
+              <input type="text" value="${esc(dist.date || '')}" style="width: 100%; border: none; background: transparent; text-align: center; font-weight: bold;" onchange="updateDistMeta(${dIdx}, 'date', this.value)">
+            </td>
+            <td style="background: #ffffff; width: 25%;"></td>
+            <td style="background: #ffeb3b; font-weight: bold; text-align: center; padding: 6px; font-size: 1.1rem;" rowspan="3">
+              <input type="text" value="${esc(dist.name || '')}" style="width: 100%; border: none; background: transparent; text-align: center; font-weight: bold; font-size: 1.1rem; color: #b71c1c;" onchange="updateDistMeta(${dIdx}, 'name', this.value)">
+            </td>
+          </tr>
+          <tr>
+            <td style="background: #e9ecef; font-weight: bold; text-align: right; padding: 6px;">Distributore n°:</td>
+            <td style="background: #ffeb3b; font-weight: bold; text-align: center; padding: 6px;">
+              <input type="number" value="${dIdx + 1}" style="width: 100%; border: none; background: transparent; text-align: center; font-weight: bold;" readonly>
+            </td>
+            <td style="background: #ffffff;"></td>
+          </tr>
+          <tr>
+            <td style="background: #e9ecef; font-weight: bold; text-align: right; padding: 6px;">Importo fondi resti:</td>
+            <td style="background: #ffeb3b; font-weight: bold; text-align: center; padding: 6px;">
+              <input type="number" step="any" value="${dist.fondoResti ?? 35}" style="width: 100%; border: none; background: transparent; text-align: center; font-weight: bold;" onchange="updateDistMeta(${dIdx}, 'fondoResti', this.value)">
+            </td>
+            <td style="background: #ffffff; text-align: right; font-weight: bold; padding-right: 15px; font-size: 1.05rem;">€ ${fmtMoney(totalIncassoDist)}</td>
+          </tr>
+        </table>
+
+        <!-- Pulsante pulizia e Tabella righe (da B a M) -->
+        <div style="margin-bottom: 10px; display: flex; gap: 10px;">
+          <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;" onclick="clearDistributore(${dIdx})">PULISCI</button>
         </div>
+
         <div style="overflow-x: auto;">
-          <table style="width:100%; border-collapse: collapse;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
             <thead>
               <tr style="background: #343a40; color: white;">
-                <th style="padding: 6px; font-size: 0.85rem;">Riga</th>`;
-    for(let c=0; c<cols; c++) html += `<th style="padding: 6px; text-align:center; font-size: 0.85rem;">Col ${c+1}</th>`;
-    html += `</tr></thead><tbody>`;
-
-    for(let r=0; r<rowsCount; r++) {
-      html += `<tr><td style="background: #e9ecef; font-weight: bold; padding: 6px; font-size: 0.85rem;">Riga ${r+1}</td>`;
-      for(let c=0; c<cols; c++) {
-        let cellData = block.gridValues?.[r]?.[c] || { weight: "", taraIdx: 0 };
-        let weightVal = cellData.weight ?? "";
-        let taraIdx = cellData.taraIdx ?? 0;
-
-        html += `<td style="border: 1px solid #dee2e6; padding: 6px; text-align: center; background: #fafafa;">
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <input type="number" step="any" placeholder="Kg" value="${weightVal}" style="width: 60px; padding: 3px; text-align: center; margin: 0 auto;" onchange="updateCandyCell(${bIndex}, ${r}, ${c}, 'weight', this.value)">
-            <select style="font-size: 0.7rem; padding: 2px; border-radius: 3px; border: 1px solid #ccc;" onchange="updateCandyCell(${bIndex}, ${r}, ${c}, 'taraIdx', this.value)">
-              ${[0, 1, 2, 3].map(ti => `<option value="${ti}" ${taraIdx === ti ? 'selected' : ''}>T${ti+1} (${cfg.tares[ti]}kg)</option>`).join('')}
-            </select>
-          </div>
-        </td>`;
-      }
-      html += `</tr>`;
-    }
-    html += `</tbody></table></div></div>`;
-  }
-  html += `</div>`;
-
-  // Sezione Buste Caramelle
-  html += `
-    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-      <h3 style="margin: 0 0 15px 0; color: #333;">📦 Conteggio Buste / Sleeve Caramelle</h3>
-      <div style="overflow-x: auto;">
-        <table style="width:100%; border-collapse: collapse;">
-          <thead>
-            <tr style="background: #343a40; color: white;">
-              <th style="padding: 8px;">Posizione / Busta</th>
-              <th style="padding: 8px; text-align: center;">Chili Sfusi (Kg)</th>
-              <th style="padding: 8px; text-align: center;">Sleeve Pene/Buste</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${cfg.buste.map((b, idx) => `
-              <tr>
-                <td style="background: #e9ecef; font-weight: bold; padding: 6px; font-size: 0.85rem;">Busta ${idx+1}</td>
-                <td style="border: 1px solid #dee2e6; padding: 6px; text-align: center;">
-                  <input type="number" step="any" value="${b.kg || 0}" style="width: 90px; padding: 4px; text-align: center;" onchange="updateCandyBusta(${idx}, 'kg', this.value)">
-                </td>
-                <td style="border: 1px solid #dee2e6; padding: 6px; text-align: center;">
-                  <input type="number" step="any" value="${b.sleeve || 0}" style="width: 90px; padding: 4px; text-align: center;" onchange="updateCandyBusta(${idx}, 'sleeve', this.value)">
-                </td>
+                <th style="padding: 8px; width: 22%;">PRODOTTO</th>
+                <th style="padding: 8px; text-align: center; background: #e0e0e0; color: #333; width: 8%;">STOCK INIZIALE</th>
+                <th style="padding: 8px; text-align: center; width: 6%;">INS.1</th>
+                <th style="padding: 8px; text-align: center; width: 6%;">INS.2</th>
+                <th style="padding: 8px; text-align: center; width: 6%;">INS.3</th>
+                <th style="padding: 8px; text-align: center; width: 6%;">INS.4</th>
+                <th style="padding: 8px; text-align: center; width: 6%;">INS.5</th>
+                <th style="padding: 8px; text-align: center; background: #e0e0e0; color: #333; width: 9%;">Somma inserimenti</th>
+                <th style="padding: 8px; text-align: center; background: #e0e0e0; color: #333; width: 9%;">CONTA FINALE</th>
+                <th style="padding: 8px; text-align: center; background: #e0e0e0; color: #333; width: 8%;">VENDUTO (da battere)</th>
+                <th style="padding: 8px; text-align: center; background: #e0e0e0; color: #333; width: 8%;">PREZZO DI VENDITA</th>
+                <th style="padding: 8px; text-align: center; background: #e0e0e0; color: #333; width: 10%;">INCASSO</th>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+    `;
+
+    dist.rows.forEach((r, rIdx) => {
+      let stockIni = n(r.stockIniziale);
+      let sumIns = r.ins.reduce((acc, val) => acc + n(val), 0);
+      let contaFin = r.contaFinale !== "" ? n(r.contaFinale) : "";
+      let venduto = contaFin !== "" ? (stockIni + sumIns) - contaFin : "";
+      if (venduto !== "" && venduto < 0) venduto = 0;
+      let prezzo = n(r.prezzoVendita);
+      let incasso = venduto !== "" ? venduto * prezzo : 0;
+
+      let rowBg = (rIdx % 2 === 1) ? "#fff9c4" : "#ffffff";
+
+      html += `
+        <tr style="background: ${rowBg};">
+          <td style="border: 1px solid #dee2e6; padding: 4px;">
+            <select style="width: 100%; padding: 4px; font-size: 0.8rem; border: 1px solid #ccc; border-radius: 3px;" onchange="updateDistCell(${dIdx}, ${rIdx}, 'product', this.value)">
+              <option value="">-- Seleziona Prodotto --</option>
+              ${rows.map(rowItem => `<option value="${esc(rowItem.name)}" ${r.product === rowItem.name ? 'selected' : ''}>${esc(rowItem.name)}</option>`).join('')}
+            </select>
+          </td>
+          <td style="border: 1px solid #dee2e6; padding: 4px; text-align: center; background: #ffeb3b;">
+            <input type="number" step="any" value="${r.stockIniziale !== "" ? r.stockIniziale : ''}" style="width: 100%; padding: 3px; text-align: center; border: none; background: transparent; font-weight: bold;" onchange="updateDistCell(${dIdx}, ${rIdx}, 'stockIniziale', this.value)">
+          </td>
+          ${[0, 1, 2, 3, 4].map(insIdx => `
+            <td style="border: 1px solid #dee2e6; padding: 4px; text-align: center;">
+              <input type="number" step="any" value="${r.ins[insIdx] !== "" ? r.ins[insIdx] : ''}" style="width: 100%; padding: 3px; text-align: center; border: 1px solid #ccc; border-radius: 3px;" onchange="updateDistIns(${dIdx}, ${rIdx}, ${insIdx}, this.value)">
+            </td>
+          `).join('')}
+          <td style="border: 1px solid #dee2e6; padding: 4px; text-align: center; font-weight: bold; background: #f1f3f5;">
+            ${sumIns > 0 ? fmt(sumIns) : ''}
+          </td>
+          <td style="border: 1px solid #dee2e6; padding: 4px; text-align: center; background: #ffeb3b;">
+            <input type="number" step="any" value="${r.contaFinale !== "" ? r.contaFinale : ''}" style="width: 100%; padding: 3px; text-align: center; border: none; background: transparent; font-weight: bold;" onchange="updateDistCell(${dIdx}, ${rIdx}, 'contaFinale', this.value)">
+          </td>
+          <td style="border: 1px solid #dee2e6; padding: 4px; text-align: center; font-weight: bold; color: #0d47a1;">
+            ${venduto !== "" ? fmt(venduto) : ''}
+          </td>
+          <td style="border: 1px solid #dee2e6; padding: 4px; text-align: center;">
+            <input type="number" step="any" value="${r.prezzoVendita !== "" ? r.prezzoVendita : ''}" placeholder="€ 0,00" style="width: 100%; padding: 3px; text-align: center; border: 1px solid #ccc; border-radius: 3px;" onchange="updateDistCell(${dIdx}, ${rIdx}, 'prezzoVendita', this.value)">
+          </td>
+          <td style="border: 1px solid #dee2e6; padding: 4px; text-align: right; font-weight: bold; color: #1b5e20; padding-right: 8px;">
+            ${incasso > 0 ? '€ ' + fmtMoney(incasso) : ''}
+          </td>
+        </tr>
+      `;
+    });
+
+    html += `
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  }
 
   html += `</td></tr>`;
   $("tbody").innerHTML = html;
 }
 
-/* --- RENDER SCHERMATA POST MIX --- */
-function renderPostMixView() {
-  const cfg = getActiveCinemaPostMixConfig();
-  const totals = getPostMixProductTotals();
-  $("count").textContent = `Magazzino Post Mix (${cinemaName})`;
-  $("thead").innerHTML = `<tr><th style="background: #212529; color: white; padding: 12px;">🥤 Magazzino Post Mix a Blocchi — ${esc(cinemaName)}</th></tr>`;
-
-  let html = `<tr><td style="padding: 20px; background: #f8f9fa;">`;
-  html += `
-    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: center;">
-      <div>
-        <h3 style="margin: 0; color: #333;">Totale Netti Post Mix per Prodotto</h3>
-        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
-          ${postMixProducts.length === 0 ? '<span style="color:#d32f2f;">⚠️ Nessun prodotto Post Mix trovato. Assicurati di caricare il file SIZE con il foglio POSTMIX.</span>' : ''}
-          ${postMixProducts.map(p => `
-            <div style="background: #e3f2fd; padding: 6px 12px; border-radius: 6px; font-size: 0.9rem;">
-              <strong>${esc(p.name)}:</strong> <span style="color: #0d47a1; font-weight: bold;">${fmt(totals[p.name] || 0)} Kg</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-      <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-        <div>
-          <label style="font-size: 0.85rem; font-weight: bold; display: block; color: #555;">N. Blocchi</label>
-          <select style="padding: 6px; border-radius: 4px; border: 1px solid #ccc;" onchange="updatePostMixBlocksCount(this.value)">
-            ${[1, 2, 3, 4, 5, 6].map(num => `<option value="${num}" ${cfg.blocksCount === num ? 'selected' : ''}>${num} Blocchi</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <label style="font-size: 0.85rem; font-weight: bold; display: block; color: #555;">Disposizione</label>
-          <select style="padding: 6px; border-radius: 4px; border: 1px solid #ccc;" onchange="updatePostMixOrientation(this.value)">
-            <option value="vertical" ${cfg.orientation === 'vertical' ? 'selected' : ''}>In Verticale</option>
-            <option value="horizontal" ${cfg.orientation === 'horizontal' ? 'selected' : ''}>In Orizzontale</option>
-          </select>
-        </div>
-      </div>
-    </div>
-  `;
-
-  let containerStyle = cfg.orientation === 'horizontal' 
-    ? "display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px; margin-bottom: 20px;"
-    : "display: flex; flex-direction: column; gap: 20px; margin-bottom: 20px;";
-
-  html += `<div style="${containerStyle}">`;
-  let activeBlocksCount = parseInt(cfg.blocksCount) || cfg.blocks.length;
-  for (let bIndex = 0; bIndex < activeBlocksCount; bIndex++) {
-    if (!cfg.blocks[bIndex]) {
-      cfg.blocks[bIndex] = { id: `pm_block_${bIndex}`, name: `🥤 Blocco Post Mix ${bIndex+1}`, columns: 6, rows: 4, gridValues: {} };
-    }
-    let block = cfg.blocks[bIndex];
-    let cols = parseInt(block.columns) || 1;
-    let rowsCount = parseInt(block.rows) || 1;
-
-    html += `
-      <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-        <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f1f3f5; padding-bottom: 10px; flex-wrap: wrap;">
-          <input type="text" value="${esc(block.name)}" style="font-weight: bold; color: #d84315; font-size: 1.1rem; border: 1px solid transparent; background: transparent; flex: 1;" onchange="updatePostMixBlockName(${bIndex}, this.value)">
-          <div>Colonne: <input type="number" value="${cols}" style="width: 55px; padding: 4px;" onchange="updatePostMixBlockDim(${bIndex}, 'columns', this.value)"></div>
-          <div>Righe: <input type="number" value="${rowsCount}" style="width: 55px; padding: 4px;" onchange="updatePostMixBlockDim(${bIndex}, 'rows', this.value)"></div>
-        </div>
-        <div style="overflow-x: auto;">
-          <table style="width:100%; border-collapse: collapse;">
-            <thead>
-              <tr style="background: #343a40; color: white;">
-                <th style="padding: 6px; font-size: 0.85rem;">Riga</th>`;
-    for(let c=0; c<cols; c++) html += `<th style="padding: 6px; text-align:center; font-size: 0.85rem;">Col ${c+1}</th>`;
-    html += `</tr></thead><tbody>`;
-
-    for(let r=0; r<rowsCount; r++) {
-      html += `<tr><td style="background: #e9ecef; font-weight: bold; padding: 6px; font-size: 0.85rem;">Riga ${r+1}</td>`;
-      for(let c=0; c<cols; c++) {
-        let cellData = block.gridValues?.[r]?.[c] || { weight: "", prodName: "" };
-        let selProd = cellData.prodName || "";
-        
-        html += `<td style="border: 1px solid #dee2e6; padding: 6px; text-align: center; background: #fafafa;">
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <select style="font-size: 0.75rem; padding: 3px; border-radius: 3px; border: 1px solid #ccc; max-width: 140px;" onchange="updatePostMixCell(${bIndex}, ${r}, ${c}, 'prodName', this.value)">
-              <option value="">-- Seleziona Prodotto --</option>
-              ${postMixProducts.map(p => `<option value="${esc(p.name)}" ${selProd === p.name ? 'selected' : ''}>${esc(p.name)} (Tara: ${p.tara}kg)</option>`).join('')}
-            </select>
-            <input type="number" step="any" placeholder="Kg Lordi" value="${cellData.weight ?? ""}" style="width: 80px; padding: 3px; text-align: center; margin: 0 auto;" onchange="updatePostMixCell(${bIndex}, ${r}, ${c}, 'weight', this.value)">
-          </div>
-        </td>`;
-      }
-      html += `</tr>`;
-    }
-    html += `</tbody></table></div></div>`;
-  }
-  html += `</div></td></tr>`;
-  $("tbody").innerHTML = html;
+/* Handler specifici per i Distributori */
+function updateDistributorsCount(val) {
+  let cfg = getActiveCinemaDistributorConfig();
+  cfg.distributorsCount = parseInt(val) || 2;
+  saveDistributorConfig();
+  renderDistributorsView();
 }
 
-/* --- FUNZIONI DI SUPPORTO PER INPUT MULTI-CAMPO E AGGIORNAMENTO CARAMELLE/POSTMIX --- */
+function updateDistMeta(dIdx, field, val) {
+  let cfg = getActiveCinemaDistributorConfig();
+  if (cfg.distributors[dIdx]) {
+    cfg.distributors[dIdx][field] = val;
+    saveDistributorConfig();
+    renderDistributorsView();
+  }
+}
+
+function updateDistCell(dIdx, rIdx, field, val) {
+  let cfg = getActiveCinemaDistributorConfig();
+  if (cfg.distributors[dIdx] && cfg.distributors[dIdx].rows[rIdx]) {
+    cfg.distributors[dIdx].rows[rIdx][field] = (field === 'stockIniziale' || field === 'contaFinale' || field === 'prezzoVendita') ? (val === "" ? "" : n(val)) : val;
+    saveDistributorConfig();
+    renderDistributorsView();
+  }
+}
+
+function updateDistIns(dIdx, rIdx, insIdx, val) {
+  let cfg = getActiveCinemaDistributorConfig();
+  if (cfg.distributors[dIdx] && cfg.distributors[dIdx].rows[rIdx]) {
+    cfg.distributors[dIdx].rows[rIdx].ins[insIdx] = val === "" ? "" : n(val);
+    saveDistributorConfig();
+    renderDistributorsView();
+  }
+}
+
+function clearDistributore(dIdx) {
+  if (confirm("Sei sicuro di voler pulire questo distributore?")) {
+    let cfg = getActiveCinemaDistributorConfig();
+    if (cfg.distributors[dIdx]) {
+      cfg.distributors[dIdx].rows = Array(20).fill().map(() => ({ product: "", stockIniziale: "", ins: ["", "", "", "", ""], contaFinale: "", prezzoVendita: "" }));
+      saveDistributorConfig();
+      renderDistributorsView();
+    }
+  }
+}
+
+/* --- FUNZIONI DI SUPPORTO PER INPUT MULTI-CAMPO --- */
 function renderMultiInput(whIdx, code, fieldType, unitSize) {
   const c = getCount(whIdx, code);
   const arr = c[fieldType] || [0];
@@ -1019,7 +1055,6 @@ function updateCandyOrientation(val) { getActiveCinemaCandyConfig().orientation 
 function updateCandyTaraVal(idx, val) { getActiveCinemaCandyConfig().tares[idx] = n(val); saveCandyConfig(); renderCandyView(); }
 function updateCandyBlockName(bIndex, val) { getActiveCinemaCandyConfig().blocks[bIndex].name = val; saveCandyConfig(); }
 function updateCandyBlockDim(bIndex, field, val) {
-  getActiveCinemaPostMixConfig(); 
   getActiveCinemaCandyConfig().blocks[bIndex][field] = parseInt(val) || 1;
   saveCandyConfig();
   renderCandyView();
