@@ -1,5 +1,6 @@
 /* --- FUNZIONE BASE PER SELEZIONE ELEMENTI --- */
 function $(id) { return document.getElementById(id); }
+function showError(msg) { alert(msg); }
 /* --- PARSER FILE SIZE E POSTMIX --- */
 function readMatrixAsync(file, sheetName) {
   return new Promise((resolve) => {
