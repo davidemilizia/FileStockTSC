@@ -156,7 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const f = e.target.files[0];
     if (!f) return;
     $("sizeStatus").textContent = "Lettura anagrafica in corso...";
-    readMatrix(f, "SIZE").then(m => {
+    readMatrix(f).then(m => {
       let parsedSizeResult = parseSize(m);
       size = parsedSizeResult.size;
       postMixProducts = parsedSizeResult.postMix;
@@ -335,8 +335,8 @@ function switchTab() {
   }
 }
 
-/* ---------------- EXCEL PARSING ---------------- */
-function readMatrix(file, preferredSheetName = "") {
+/* ---------------- EXCEL PARSING (MULTI-FOGLIO) ---------------- */
+function readMatrix(file) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onload = e => {
@@ -345,12 +345,16 @@ function readMatrix(file, preferredSheetName = "") {
         const wb = XLSX.read(e.target.result, { type: "array", cellDates: false });
         if (!wb.SheetNames || !wb.SheetNames.length) throw new Error("Nessun foglio trovato.");
         
-        let sheetName = wb.SheetNames[0];
-        if (preferredSheetName) {
-          const found = wb.SheetNames.find(s => norm(s).includes(norm(preferredSheetName)));
-          if (found) sheetName = found;
-        }
-        resolve(XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: "", raw: true }));
+        let combinedMatrix = [];
+        // Legge tutti i fogli presenti nel workbook Excel e li unisce in un'unica matrice
+        wb.SheetNames.forEach(sheetName => {
+          const sheetData = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: "", raw: true });
+          if (sheetData && sheetData.length > 0) {
+            combinedMatrix = combinedMatrix.concat(sheetData);
+          }
+        });
+
+        resolve(combinedMatrix);
       } catch (x) { reject(x); }
     };
     r.onerror = () => reject(new Error("Errore nella lettura fisica del file."));
@@ -428,7 +432,7 @@ function parseSize(m) {
       section = "KIT";
       continue;
     }
-    if (normFirst === "POSTMIX" || normFirst === "POST MIX" || norm(r[1]) === "TARA") {
+    if (normFirst === "POSTMIX" || normFirst === "POST MIX" || norm(r[1]) === "TARA" || norm(r[2]) === "TARA") {
       section = "POSTMIX";
       continue;
     }
@@ -465,7 +469,8 @@ function parseSize(m) {
       });
     } else if (section === "POSTMIX") {
       const prodName = firstVal;
-      const taraVal = n(r[1]);
+      // Nel foglio POSTMIX la tara si trova nella terza colonna (indice 2)
+      const taraVal = n(r[2] !== undefined && r[2] !== "" ? r[2] : r[1]);
       if (!prodName || normFirst === "PRODOTTO" || normFirst === "TARA") continue;
       postMixOut.push({ name: prodName, tara: taraVal });
     } else {
@@ -1014,7 +1019,7 @@ function updateCandyOrientation(val) { getActiveCinemaCandyConfig().orientation 
 function updateCandyTaraVal(idx, val) { getActiveCinemaCandyConfig().tares[idx] = n(val); saveCandyConfig(); renderCandyView(); }
 function updateCandyBlockName(bIndex, val) { getActiveCinemaCandyConfig().blocks[bIndex].name = val; saveCandyConfig(); }
 function updateCandyBlockDim(bIndex, field, val) {
-  getActiveCinemaPostMixConfig(); // mantiene coerenza
+  getActiveCinemaPostMixConfig(); 
   getActiveCinemaCandyConfig().blocks[bIndex][field] = parseInt(val) || 1;
   saveCandyConfig();
   renderCandyView();
