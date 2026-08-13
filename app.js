@@ -178,6 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadCountsFromStorage();
   updateHeaderTitle();
   injectExcelExportButton();
+  cleanupOldButtons();
 
   $("magFile").addEventListener("change", e => {
     const f = e.target.files[0];
@@ -211,6 +212,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   $("search").addEventListener("input", render);
 });
+
+/* --- PULIZIA VECCHI PULSANTI DUPLICATI --- */
+function cleanupOldButtons() {
+  document.querySelectorAll('button').forEach(btn => {
+    if (btn.textContent.trim() === 'Esporta in Excel' && !btn.closest('#exportButtonsContainer')) {
+      btn.remove();
+    }
+  });
+}
 
 /* --- INIEZIONE DOPPIO PULSANTE ESPORTAZIONE EXCEL --- */
 function injectExcelExportButton() {
@@ -266,11 +276,11 @@ function exportCurrentInventoryToExcel() {
     activeMagName = `${cinemaName} - ${warehouses[currentTab]}`;
   }
 
-  let excelData = [];
-  excelData.push([activeMagName]);
-  excelData.push([]); 
+  let aoa = [];
+  aoa.push([activeMagName]);
+  aoa.push([]); 
 
-  excelData.push([
+  aoa.push([
     "Prodotto", "U.M.", "Iniziale", "Danni", "Venduto", 
     "Size Box", "Q.tà Box", "Size Sleeve", "Q.tà Sleeve", "Q.tà Sfuso", 
     "Atteso", "Rilevato Base", "Da Kit/Speciale", "Effettivo Totale", "Diff. Totale", 
@@ -299,15 +309,57 @@ function exportCurrentInventoryToExcel() {
     const diffTotale = effettivoTotaleComplesso - r.atteso;
     const diffValore = diffTotale * (r.standardCost || 0);
 
-    excelData.push([
-      r.name, r.uom, r.iniziale, r.danni, r.venduto,
-      r.boxSize || 0, totBoxLocal, r.sleeveSize || 0, totSleeveLocal, totSfusoLocal,
-      r.atteso, baseRilevato, kitPart, effettivoTotaleComplesso, diffTotale,
-      r.standardCost || 0, diffValore
+    aoa.push([
+      r.name, 
+      r.uom, 
+      r.iniziale, 
+      r.danni, 
+      r.venduto,
+      r.boxSize || 0, 
+      totBoxLocal, 
+      r.sleeveSize || 0, 
+      totSleeveLocal, 
+      totSfusoLocal,
+      r.atteso, 
+      baseRilevato, 
+      kitPart, 
+      effettivoTotaleComplesso, 
+      diffTotale,
+      r.standardCost || 0, 
+      diffValore
     ]);
   });
 
-  const ws = XLSX.utils.aoa_to_sheet(excelData);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  
+  // Formattazione professionale delle celle numeriche e larghezza colonne
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  const colsWidth = [];
+
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
+      const cell = ws[cellAddress];
+      if (!cell) continue;
+
+      // Imposta larghezza colonne automatica basata sul contenuto
+      const valStr = String(cell.v || "");
+      colsWidth[C] = Math.max(colsWidth[C] || 10, valStr.length + 3);
+
+      // Formati numerici a partire dalla riga della tabella (indice 2)
+      if (R >= 2 && C >= 2) {
+        cell.t = 'n';
+        if (C === 15 || C === 16) {
+          cell.z = '€ #,##0.00'; // Formato valuta
+        } else {
+          cell.z = '#,##0.##';  // Formato numerico generale con decimali opzionali
+        }
+      }
+    }
+  }
+
+  ws['!cols'] = colsWidth.map(w => ({wch: w}));
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Inventario");
   const safeFileName = activeMagName.replace(/[^a-zA-Z0-9-_]/g, "_");
@@ -327,11 +379,11 @@ function exportEmptyTemplateToExcel() {
     activeMagName = `${cinemaName} - Template Conteggio`;
   }
 
-  let excelData = [];
-  excelData.push([activeMagName]);
-  excelData.push([]); 
+  let aoa = [];
+  aoa.push([activeMagName]);
+  aoa.push([]); 
 
-  excelData.push([
+  aoa.push([
     "Prodotto", 
     "U.M.", 
     "Size Box", 
@@ -343,7 +395,7 @@ function exportEmptyTemplateToExcel() {
   ]);
 
   rows.forEach(r => {
-    excelData.push([
+    aoa.push([
       r.name,
       r.uom,
       r.boxSize || 0,
@@ -355,7 +407,25 @@ function exportEmptyTemplateToExcel() {
     ]);
   });
 
-  const ws = XLSX.utils.aoa_to_sheet(excelData);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  const colsWidth = [];
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
+      const cell = ws[cellAddress];
+      if (!cell) continue;
+      const valStr = String(cell.v || "");
+      colsWidth[C] = Math.max(colsWidth[C] || 10, valStr.length + 3);
+      if (R >= 2 && (C === 2 || C === 8 || C === 19)) {
+        cell.t = 'n';
+        cell.z = '#,##0.##';
+      }
+    }
+  }
+  ws['!cols'] = colsWidth.map(w => ({wch: w}));
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Template_Conteggio");
   const safeFileName = activeMagName.replace(/[^a-zA-Z0-9-_]/g, "_");
