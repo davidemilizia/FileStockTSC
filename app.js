@@ -177,8 +177,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSetupFromStorage();
   loadCountsFromStorage();
   updateHeaderTitle();
-  injectExcelExportButton();
-  cleanupOldButtons();
+  injectExcelTemplateButton();
 
   $("magFile").addEventListener("change", e => {
     const f = e.target.files[0];
@@ -213,40 +212,23 @@ document.addEventListener("DOMContentLoaded", () => {
   $("search").addEventListener("input", render);
 });
 
-function cleanupOldButtons() {
-  document.querySelectorAll('button').forEach(btn => {
-    const txt = btn.textContent.trim();
-    if ((txt === 'Esporta in Excel' || txt.includes('Esporta in Excel')) && btn.id !== 'btnExportCurrent' && btn.id !== 'btnExportExcel') {
-      btn.remove();
-    }
-  });
-}
-
-function injectExcelExportButton() {
-  cleanupOldButtons();
+/* --- INIEZIONE PULSANTE TEMPLATE EXCEL IN ALTO --- */
+function injectExcelTemplateButton() {
   const headerContainer = document.querySelector("header") || document.querySelector(".header") || document.body;
-  if ($("exportButtonsContainer")) return;
+  if ($("exportTemplateBtnContainer")) return;
 
   const btnContainer = document.createElement("div");
-  btnContainer.id = "exportButtonsContainer";
+  btnContainer.id = "exportTemplateBtnContainer";
   btnContainer.className = "no-print";
   btnContainer.style.cssText = "display: flex; gap: 10px; margin: 10px 0; align-items: center; flex-wrap: wrap;";
 
-  const exportCurrentBtn = document.createElement("button");
-  exportCurrentBtn.id = "btnExportCurrent";
-  exportCurrentBtn.className = "btn btn-primary";
-  exportCurrentBtn.innerHTML = "📥 Esporta in Excel (Dati Inseriti)";
-  exportCurrentBtn.style.cssText = "background: #107c41; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;";
-  exportCurrentBtn.onclick = () => exportCurrentInventoryToExcel();
-
   const exportTemplateBtn = document.createElement("button");
-  exportTemplateBtn.id = "btnExportExcel";
+  exportTemplateBtn.id = "btnExportExcelTemplate";
   exportTemplateBtn.className = "btn btn-secondary";
   exportTemplateBtn.innerHTML = "📋 Esporta Excel Completo (Template Vuoto da Stampare)";
   exportTemplateBtn.style.cssText = "background: #005a9e; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;";
   exportTemplateBtn.onclick = () => exportEmptyTemplateToExcel();
 
-  btnContainer.appendChild(exportCurrentBtn);
   btnContainer.appendChild(exportTemplateBtn);
 
   const titleEl = $("appTitle") || headerContainer;
@@ -254,6 +236,91 @@ function injectExcelExportButton() {
     titleEl.parentNode.insertBefore(btnContainer, titleEl.nextSibling);
   } else {
     document.body.insertBefore(btnContainer, document.body.firstChild);
+  }
+}
+
+/* --- FUNZIONE UTILITARIA PER STILE FOGLI EXCEL (AGGIORNATA CON PALETTE ARANCIONE CALDO) --- */
+function applyExcelStyling(ws, data, hasHeaderRows = 2) {
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  ws['!cols'] = [];
+
+  // Calcola larghezza colonne automatica
+  for (let C = range.s.c; C <= range.e.c; ++C) {
+    let maxLen = 10;
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      const cell = ws[XLSX.utils.encode_cell({r: R, c: C})];
+      if (cell && cell.v !== undefined) {
+        const len = String(cell.v).length;
+        if (len > maxLen) maxLen = len;
+      }
+    }
+    ws['!cols'].push({wch: Math.min(maxLen + 3, 35)});
+  }
+
+  // Applica stili visivi alle celle con standard gestionali
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellRef = XLSX.utils.encode_cell({r: R, c: C});
+      if (!ws[cellRef]) continue;
+
+      if (!ws[cellRef].s) ws[cellRef].s = {};
+
+      // Titolo principale in alto (Arancione scuro / Brand)
+      if (R === 0) {
+        ws[cellRef].s = {
+          font: { name: "Calibri", bold: true, sz: 14, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "C65911" } },
+          alignment: { vertical: "center", horizontal: "center" }
+        };
+        continue;
+      }
+
+      // Intestazioni tabella (Arancione caldo con testo bianco in grassetto)[cite: 2]
+      if (R === hasHeaderRows) {
+        ws[cellRef].s = {
+          font: { name: "Calibri", bold: true, sz: 10, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "D96B27" } },
+          alignment: { vertical: "center", horizontal: "center", wrapText: true },
+          border: {
+            top: { style: "thin", color: { rgb: "000000" } },
+            bottom: { style: "medium", color: { rgb: "000000" } },
+            left: { style: "thin", color: { rgb: "CCCCCC" } },
+            right: { style: "thin", color: { rgb: "CCCCCC" } }
+          }
+        };
+        continue;
+      }
+
+      // Righe dati con effetto Zebra (sfumature calde leggere)[cite: 2] e bordi sottili
+      if (R > hasHeaderRows) {
+        const isEven = (R % 2 === 0);
+        ws[cellRef].s.fill = { fgColor: { rgb: isEven ? "FDF8F5" : "FFFFFF" } };
+        ws[cellRef].s.border = {
+          top: { style: "thin", color: { rgb: "E0E0E0" } },
+          bottom: { style: "thin", color: { rgb: "E0E0E0" } },
+          left: { style: "thin", color: { rgb: "E0E0E0" } },
+          right: { style: "thin", color: { rgb: "E0E0E0" } }
+        };
+        ws[cellRef].s.font = { name: "Calibri", sz: 10 };
+
+        // Formattazione numerica e allineamenti specifici
+        const val = ws[cellRef].v;
+        if (typeof val === "number") {
+          ws[cellRef].s.alignment = { vertical: "center", horizontal: "right" };
+          if (C >= 15) { 
+            ws[cellRef].z = "€ #,##0.00";
+          } else {
+            ws[cellRef].z = "#,##0";
+          }
+        } else {
+          if (C === 1 || C === 5 || C === 7) {
+            ws[cellRef].s.alignment = { vertical: "center", horizontal: "center" };
+          } else {
+            ws[cellRef].s.alignment = { vertical: "center", horizontal: "left" };
+          }
+        }
+      }
+    }
   }
 }
 
@@ -276,11 +343,11 @@ function exportCurrentInventoryToExcel() {
     activeMagName = `${cinemaName} - ${warehouses[currentTab]}`;
   }
 
-  let aoa = [];
-  aoa.push([activeMagName]);
-  aoa.push([]); 
+  let excelData = [];
+  excelData.push([activeMagName]);
+  excelData.push([]); 
 
-  aoa.push([
+  excelData.push([
     "Prodotto", "U.M.", "Iniziale", "Danni", "Venduto", 
     "Size Box", "Q.tà Box", "Size Sleeve", "Q.tà Sleeve", "Q.tà Sfuso", 
     "Atteso", "Rilevato Base", "Da Kit/Speciale", "Effettivo Totale", "Diff. Totale", 
@@ -309,93 +376,16 @@ function exportCurrentInventoryToExcel() {
     const diffTotale = effettivoTotaleComplesso - r.atteso;
     const diffValore = diffTotale * (r.standardCost || 0);
 
-    aoa.push([
-      r.name, 
-      r.uom, 
-      r.iniziale, 
-      r.danni, 
-      r.venduto,
-      r.boxSize || 0, 
-      totBoxLocal, 
-      r.sleeveSize || 0, 
-      totSleeveLocal, 
-      totSfusoLocal,
-      r.atteso, 
-      baseRilevato, 
-      kitPart, 
-      effettivoTotaleComplesso, 
-      diffTotale,
-      r.standardCost || 0, 
-      diffValore
+    excelData.push([
+      r.name, r.uom, r.iniziale, r.danni, r.venduto,
+      r.boxSize || 0, totBoxLocal, r.sleeveSize || 0, totSleeveLocal, totSfusoLocal,
+      r.atteso, baseRilevato, kitPart, effettivoTotaleComplesso, diffTotale,
+      r.standardCost || 0, diffValore
     ]);
   });
 
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  const colsWidth = [];
-
-  const thinBorder = {
-    top: { style: 'thin', color: { rgb: "D9D9D9" } },
-    bottom: { style: 'thin', color: { rgb: "D9D9D9" } },
-    left: { style: 'thin', color: { rgb: "D9D9D9" } },
-    right: { style: 'thin', color: { rgb: "D9D9D9" } }
-  };
-
-  const headerBorder = {
-    top: { style: 'medium', color: { rgb: "1F4E78" } },
-    bottom: { style: 'medium', color: { rgb: "1F4E78" } },
-    left: { style: 'thin', color: { rgb: "D9D9D9" } },
-    right: { style: 'thin', color: { rgb: "D9D9D9" } }
-  };
-
-  for (let R = range.s.r; R <= range.e.r; ++R) {
-    for (let C = range.s.c; C <= range.e.c; ++C) {
-      const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
-      const cell = ws[cellAddress];
-      if (!cell) continue;
-
-      const valStr = String(cell.v || "");
-      colsWidth[C] = Math.max(colsWidth[C] || 10, valStr.length + 4);
-
-      if (R === 2) {
-        cell.s = {
-          font: { bold: true, color: { rgb: "FFFFFF" }, name: "Calibri", sz: 11 },
-          fill: { fgColor: { rgb: "1F4E78" } }, 
-          alignment: { horizontal: "center", vertical: "center", wrapText: true },
-          border: headerBorder
-        };
-      } 
-      else if (R === 0) {
-        cell.s = {
-          font: { bold: true, sz: 14, color: { rgb: "1F4E78" }, name: "Calibri" }
-        };
-      }
-      else if (R > 2) {
-        let align = "right";
-        if (C === 0) align = "left";
-        else if (C === 1) align = "center";
-
-        cell.s = {
-          font: { name: "Calibri", sz: 11 },
-          alignment: { horizontal: align, vertical: "center" },
-          border: thinBorder
-        };
-
-        if (C >= 2) {
-          cell.t = 'n';
-          if (C === 15 || C === 16) {
-            cell.z = '€ #,##0.00';
-          } else {
-            cell.z = '#,##0';
-          }
-        }
-      }
-    }
-  }
-
-  ws['!cols'] = colsWidth.map(w => ({wch: w}));
-  ws['!rows'] = [{ hpt: 25 }, { hpt: 15 }, { hpt: 28 }];
+  const ws = XLSX.utils.aoa_to_sheet(excelData);
+  applyExcelStyling(ws, excelData, 2);
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Inventario");
@@ -416,11 +406,11 @@ function exportEmptyTemplateToExcel() {
     activeMagName = `${cinemaName} - Template Conteggio`;
   }
 
-  let aoa = [];
-  aoa.push([activeMagName]);
-  aoa.push([]); 
+  let excelData = [];
+  excelData.push([activeMagName]);
+  excelData.push([]); 
 
-  aoa.push([
+  excelData.push([
     "Prodotto", 
     "U.M.", 
     "Size Box", 
@@ -432,78 +422,20 @@ function exportEmptyTemplateToExcel() {
   ]);
 
   rows.forEach(r => {
-    aoa.push([
+    excelData.push([
       r.name,
       r.uom,
       r.boxSize || 0,
-      r.boxSize > 0 ? "" : "", r.boxSize > 0 ? "" : "", r.boxSize > 0 ? "" : "", r.boxSize > 0 ? "" : "", r.boxSize > 0 ? "" : "",
+      r.boxSize > 0 ? "" : "N/D", r.boxSize > 0 ? "" : "N/D", r.boxSize > 0 ? "" : "N/D", r.boxSize > 0 ? "" : "N/D", r.boxSize > 0 ? "" : "N/D",
       r.sleeveSize || 0,
-      r.sleeveSize > 0 ? "" : "", r.sleeveSize > 0 ? "" : "", r.sleeveSize > 0 ? "" : "", r.sleeveSize > 0 ? "" : "", r.sleeveSize > 0 ? "" : "",
+      r.sleeveSize > 0 ? "" : "N/D", r.sleeveSize > 0 ? "" : "N/D", r.sleeveSize > 0 ? "" : "N/D", r.sleeveSize > 0 ? "" : "N/D", r.sleeveSize > 0 ? "" : "N/D",
       "", "", "", "", "",
       r.atteso
     ]);
   });
 
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  const colsWidth = [];
-
-  const thinBorder = {
-    top: { style: 'thin', color: { rgb: "D9D9D9" } },
-    bottom: { style: 'thin', color: { rgb: "D9D9D9" } },
-    left: { style: 'thin', color: { rgb: "D9D9D9" } },
-    right: { style: 'thin', color: { rgb: "D9D9D9" } }
-  };
-
-  const headerBorder = {
-    top: { style: 'medium', color: { rgb: "2F5597" } },
-    bottom: { style: 'medium', color: { rgb: "2F5597" } },
-    left: { style: 'thin', color: { rgb: "D9D9D9" } },
-    right: { style: 'thin', color: { rgb: "D9D9D9" } }
-  };
-
-  for (let R = range.s.r; R <= range.e.r; ++R) {
-    for (let C = range.s.c; C <= range.e.c; ++C) {
-      const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
-      const cell = ws[cellAddress];
-      if (!cell) continue;
-
-      const valStr = String(cell.v || "");
-      colsWidth[C] = Math.max(colsWidth[C] || 10, valStr.length + 4);
-
-      if (R === 2) {
-        cell.s = {
-          font: { bold: true, color: { rgb: "FFFFFF" }, name: "Calibri", sz: 11 },
-          fill: { fgColor: { rgb: "2F5597" } },
-          alignment: { horizontal: "center", vertical: "center", wrapText: true },
-          border: headerBorder
-        };
-      } else if (R === 0) {
-        cell.s = {
-          font: { bold: true, sz: 14, color: { rgb: "2F5597" }, name: "Calibri" }
-        };
-      } else if (R > 2) {
-        let align = "right";
-        if (C === 0) align = "left";
-        else if (C === 1) align = "center";
-
-        cell.s = {
-          font: { name: "Calibri", sz: 11 },
-          alignment: { horizontal: align, vertical: "center" },
-          border: thinBorder
-        };
-
-        if (R >= 2 && (C === 2 || C === 8 || C === 19)) {
-          cell.t = 'n';
-          cell.z = '#,##0';
-        }
-      }
-    }
-  }
-
-  ws['!cols'] = colsWidth.map(w => ({wch: w}));
-  ws['!rows'] = [{ hpt: 25 }, { hpt: 15 }, { hpt: 28 }];
+  const ws = XLSX.utils.aoa_to_sheet(excelData);
+  applyExcelStyling(ws, excelData, 2);
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Template_Conteggio");
@@ -1078,7 +1010,7 @@ function renderMultiInput(whIdx, code, fieldType, unitSize) {
                      (fieldType === 'sleeve' && (!unitSize || unitSize <= 0));
 
   if (isDisabled) {
-    return `<span style="color: #adb5bd; font-size: 0.8rem; font-style: italic;">-</span>`;
+    return `<span style="color: #adb5bd; font-size: 0.8rem; font-style: italic;">N/D</span>`;
   }
   
   return arr.map((val, idx) => `
