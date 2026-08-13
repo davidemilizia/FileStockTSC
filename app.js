@@ -177,7 +177,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSetupFromStorage();
   loadCountsFromStorage();
   updateHeaderTitle();
-  injectExcelExportButton(); // Inserisce entrambi i pulsanti di esportazione Excel
+  injectExcelExportButton();
 
   $("magFile").addEventListener("change", e => {
     const f = e.target.files[0];
@@ -222,7 +222,6 @@ function injectExcelExportButton() {
   btnContainer.className = "no-print";
   btnContainer.style.cssText = "display: flex; gap: 10px; margin: 10px 0; align-items: center; flex-wrap: wrap;";
 
-  // Pulsante 1: Esporta dati inseriti (con valori e calcoli)
   const exportCurrentBtn = document.createElement("button");
   exportCurrentBtn.id = "btnExportCurrent";
   exportCurrentBtn.className = "btn btn-primary";
@@ -230,7 +229,6 @@ function injectExcelExportButton() {
   exportCurrentBtn.style.cssText = "background: #107c41; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;";
   exportCurrentBtn.onclick = () => exportCurrentInventoryToExcel();
 
-  // Pulsante 2: Esporta Excel Completo (Template vuoto con 5 caselle per box, sleeve, sfuso per stampa)
   const exportTemplateBtn = document.createElement("button");
   exportTemplateBtn.id = "btnExportExcel";
   exportTemplateBtn.className = "btn btn-secondary";
@@ -249,7 +247,6 @@ function injectExcelExportButton() {
   }
 }
 
-/* --- FUNZIONE 1: ESPORTA DATI ATTUALI INSERITI --- */
 function exportCurrentInventoryToExcel() {
   if (!rows || rows.length === 0) {
     alert("Nessun dato prodotto caricato da esportare!");
@@ -317,7 +314,6 @@ function exportCurrentInventoryToExcel() {
   XLSX.writeFile(wb, `Inventario_${safeFileName}.xlsx`);
 }
 
-/* --- FUNZIONE 2: TEMPLATE VUOTO CON 5 CASELLE PER BOX, SLEEVE E SFUSO --- */
 function exportEmptyTemplateToExcel() {
   if (!rows || rows.length === 0) {
     alert("Nessun prodotto caricato!");
@@ -335,7 +331,6 @@ function exportEmptyTemplateToExcel() {
   excelData.push([activeMagName]);
   excelData.push([]); 
 
-  // Intestazione con Prodotto, U.M., Size Box, 5 celle box, Size Sleeve, 5 celle sleeve, 5 celle sfuso, Valore Atteso
   excelData.push([
     "Prodotto", 
     "U.M.", 
@@ -352,10 +347,10 @@ function exportEmptyTemplateToExcel() {
       r.name,
       r.uom,
       r.boxSize || 0,
-      "", "", "", "", "", // 5 caselle vuote box
+      r.boxSize > 0 ? "" : "N/D", r.boxSize > 0 ? "" : "N/D", r.boxSize > 0 ? "" : "N/D", r.boxSize > 0 ? "" : "N/D", r.boxSize > 0 ? "" : "N/D",
       r.sleeveSize || 0,
-      "", "", "", "", "", // 5 caselle vuote sleeve
-      "", "", "", "", "", // 5 caselle vuote sfuso
+      r.sleeveSize > 0 ? "" : "N/D", r.sleeveSize > 0 ? "" : "N/D", r.sleeveSize > 0 ? "" : "N/D", r.sleeveSize > 0 ? "" : "N/D", r.sleeveSize > 0 ? "" : "N/D",
+      "", "", "", "", "",
       r.atteso
     ]);
   });
@@ -378,7 +373,6 @@ function updateHeaderTitle() {
 
 function showError(msg) { alert(msg); }
 
-/* ---------------- SETUP & STORAGE ---------------- */
 function loadSetupFromStorage() {
   const savedCinema = localStorage.getItem("cinema_info_name");
   if (savedCinema) cinemaName = savedCinema;
@@ -488,7 +482,6 @@ function addWarehouseInput() {
   container.appendChild(div);
 }
 
-/* ---------------- TABS RENDER ---------------- */
 function renderTabs() {
   const bar = $("tabsBar");
   bar.innerHTML = "";
@@ -537,7 +530,6 @@ function switchTab() {
   }
 }
 
-/* ---------------- EXCEL PARSING ---------------- */
 function readMatrix(file) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -582,7 +574,6 @@ function esc(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt
 function fmt(val) { return Number(val || 0).toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
 function fmtMoney(val) { return Number(val || 0).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
-/* PARSER MAGAZZINO */
 function parseMag(m) {
   const out = [];
   for (let i = 0; i < m.length; i++) {
@@ -610,7 +601,6 @@ function parseMag(m) {
   return out;
 }
 
-/* PARSER SIZE, KIT & POSTMIX */
 function parseSize(m) {
   const sizeOut = [];
   const postMixOut = [];
@@ -750,7 +740,6 @@ function build() {
   render();
 }
 
-/* ---------------- DATA CALCULATIONS ---------------- */
 function getCount(whIdx, code) {
   if (!countsData[whIdx]) countsData[whIdx] = {};
   if (!countsData[whIdx][code]) countsData[whIdx][code] = { box: [0], sleeve: [0], sfuso: [0] };
@@ -834,7 +823,6 @@ function getGlobalRilevato(code, r) {
   return basePezzi + getKitContributionDetail(r.name, r.code);
 }
 
-/* ---------------- TABLE RENDER & SPECIAL VIEWS ---------------- */
 function render() {
   if (currentTab === 'setup') return;
   if (currentTab === 'candy') { renderCandyView(); return; }
@@ -933,213 +921,17 @@ function render() {
   recalcKPIs();
 }
 
-/* --- RENDER SCHERMATA DISTRIBUTORI --- */
-function renderDistributorsView() {
-  const cfg = getActiveCinemaDistributorConfig();
-  $("count").textContent = `Gestione Distributori (${cinemaName})`;
-  $("thead").innerHTML = `<tr><th style="background: #212529; color: white; padding: 12px;">🍫 Gestione Distributori — ${esc(cinemaName)}</th></tr>`;
-
-  let html = `<tr><td style="padding: 20px; background: #f8f9fa;">`;
-  html += `
-    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: center;" class="no-print">
-      <div>
-        <h3 style="margin: 0; color: #333;">Configurazione Griglie Distributori</h3>
-        <p style="font-size: 0.9rem; color: #666; margin-top: 4px;">Scegli quanti distributori visualizzare in verticale e compila i campi.</p>
-      </div>
-      <div>
-        <label style="font-size: 0.85rem; font-weight: bold; display: block; color: #555;">N. Griglie Distributori</label>
-        <select style="padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 1rem;" onchange="updateDistributorsCount(this.value)">
-          ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => `<option value="${num}" ${cfg.distributorsCount === num ? 'selected' : ''}>${num} Distributori</option>`).join('')}
-        </select>
-      </div>
-    </div>
-  `;
-
-  let activeCount = parseInt(cfg.distributorsCount) || cfg.distributors.length;
-  
-  for (let dIdx = 0; dIdx < activeCount; dIdx++) {
-    if (!cfg.distributors[dIdx]) {
-      cfg.distributors[dIdx] = { 
-        id: `dist_${dIdx}`, 
-        name: `MARS ${dIdx * 9 + 1}-${(dIdx + 1) * 9}`, 
-        date: "13/08/2026", 
-        fondoResti: 35, 
-        rows: Array(20).fill().map(() => ({ product: "", stockIniziale: "", ins: ["", "", "", "", ""], contaFinale: "", prezzoVendita: "" })) 
-      };
-    }
-    let dist = cfg.distributors[dIdx];
-
-    let totalIncassoDist = 0;
-    dist.rows.forEach(r => {
-      let stockIni = n(r.stockIniziale);
-      let sumIns = r.ins.reduce((acc, val) => acc + n(val), 0);
-      let contaFin = n(r.contaFinale);
-      let venduto = (stockIni + sumIns) - contaFin;
-      if (venduto < 0) venduto = 0;
-      let prezzo = n(r.prezzoVendita);
-      totalIncassoDist += venduto * prezzo;
-    });
-
-    html += `
-      <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 30px;">
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.9rem;">
-          <tr>
-            <td style="background: #e9ecef; font-weight: bold; width: 15%; text-align: right; padding: 6px;">Data:</td>
-            <td style="background: #ffeb3b; font-weight: bold; width: 25%; text-align: center; padding: 6px;">
-              <input type="text" value="${esc(dist.date || '')}" style="width: 100%; border: none; background: transparent; text-align: center; font-weight: bold;" onchange="updateDistMeta(${dIdx}, 'date', this.value)">
-            </td>
-            <td style="background: #ffffff; width: 25%;"></td>
-            <td style="background: #ffeb3b; font-weight: bold; text-align: center; padding: 6px; font-size: 1.1rem;" rowspan="3">
-              <input type="text" value="${esc(dist.name || '')}" style="width: 100%; border: none; background: transparent; text-align: center; font-weight: bold; font-size: 1.1rem; color: #b71c1c;" onchange="updateDistMeta(${dIdx}, 'name', this.value)">
-            </td>
-          </tr>
-          <tr>
-            <td style="background: #e9ecef; font-weight: bold; text-align: right; padding: 6px;">Distributore n°:</td>
-            <td style="background: #ffeb3b; font-weight: bold; text-align: center; padding: 6px;">
-              <input type="number" value="${dIdx + 1}" style="width: 100%; border: none; background: transparent; text-align: center; font-weight: bold;" readonly>
-            </td>
-            <td style="background: #ffffff;"></td>
-          </tr>
-          <tr>
-            <td style="background: #e9ecef; font-weight: bold; text-align: right; padding: 6px;">Importo fondi resti:</td>
-            <td style="background: #ffeb3b; font-weight: bold; text-align: center; padding: 6px;">
-              <input type="number" step="any" value="${dist.fondoResti ?? 35}" style="width: 100%; border: none; background: transparent; text-align: center; font-weight: bold;" onchange="updateDistMeta(${dIdx}, 'fondoResti', this.value)">
-            </td>
-            <td style="background: #ffffff; text-align: right; font-weight: bold; padding-right: 15px; font-size: 1.05rem;">€ ${fmtMoney(totalIncassoDist)}</td>
-          </tr>
-        </table>
-
-        <div style="margin-bottom: 10px; display: flex; gap: 10px;" class="no-print">
-          <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;" onclick="clearDistributore(${dIdx})">PULISCI</button>
-        </div>
-
-        <div style="overflow-x: auto;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
-            <thead>
-              <tr style="background: #343a40; color: white;">
-                <th style="padding: 8px; width: 22%;">PRODOTTO</th>
-                <th style="padding: 8px; text-align: center; background: #e0e0e0; color: #333; width: 8%;">STOCK INIZIALE</th>
-                <th style="padding: 8px; text-align: center; width: 6%;">INS.1</th>
-                <th style="padding: 8px; text-align: center; width: 6%;">INS.2</th>
-                <th style="padding: 8px; text-align: center; width: 6%;">INS.3</th>
-                <th style="padding: 8px; text-align: center; width: 6%;">INS.4</th>
-                <th style="padding: 8px; text-align: center; width: 6%;">INS.5</th>
-                <th style="padding: 8px; text-align: center; background: #e0e0e0; color: #333; width: 9%;">Somma inserimenti</th>
-                <th style="padding: 8px; text-align: center; background: #e0e0e0; color: #333; width: 9%;">CONTA FINALE</th>
-                <th style="padding: 8px; text-align: center; background: #e0e0e0; color: #333; width: 8%;">VENDUTO (da battere)</th>
-                <th style="padding: 8px; text-align: center; background: #e0e0e0; color: #333; width: 8%;">PREZZO DI VENDITA</th>
-                <th style="padding: 8px; text-align: center; background: #e0e0e0; color: #333; width: 10%;">INCASSO</th>
-              </tr>
-            </thead>
-            <tbody>
-    `;
-
-    dist.rows.forEach((r, rIdx) => {
-      let stockIni = n(r.stockIniziale);
-      let sumIns = r.ins.reduce((acc, val) => acc + n(val), 0);
-      let contaFin = r.contaFinale !== "" ? n(r.contaFinale) : "";
-      let venduto = contaFin !== "" ? (stockIni + sumIns) - contaFin : "";
-      if (venduto !== "" && venduto < 0) venduto = 0;
-      let prezzo = n(r.prezzoVendita);
-      let incasso = venduto !== "" ? venduto * prezzo : 0;
-
-      let rowBg = (rIdx % 2 === 1) ? "#fff9c4" : "#ffffff";
-
-      html += `
-        <tr style="background: ${rowBg};">
-          <td style="border: 1px solid #dee2e6; padding: 4px;">
-            <select style="width: 100%; padding: 4px; font-size: 0.8rem; border: 1px solid #ccc; border-radius: 3px;" onchange="updateDistCell(${dIdx}, ${rIdx}, 'product', this.value)">
-              <option value="">-- Seleziona Prodotto --</option>
-              ${rows.map(rowItem => `<option value="${esc(rowItem.name)}" ${r.product === rowItem.name ? 'selected' : ''}>${esc(rowItem.name)}</option>`).join('')}
-            </select>
-          </td>
-          <td style="border: 1px solid #dee2e6; padding: 4px; text-align: center; background: #ffeb3b;">
-            <input type="number" step="any" value="${r.stockIniziale !== "" ? r.stockIniziale : ''}" style="width: 100%; padding: 3px; text-align: center; border: none; background: transparent; font-weight: bold;" onchange="updateDistCell(${dIdx}, ${rIdx}, 'stockIniziale', this.value)">
-          </td>
-          ${[0, 1, 2, 3, 4].map(insIdx => `
-            <td style="border: 1px solid #dee2e6; padding: 4px; text-align: center;">
-              <input type="number" step="any" value="${r.ins[insIdx] !== "" ? r.ins[insIdx] : ''}" style="width: 100%; padding: 3px; text-align: center; border: 1px solid #ccc; border-radius: 3px;" onchange="updateDistIns(${dIdx}, ${rIdx}, ${insIdx}, this.value)">
-            </td>
-          `).join('')}
-          <td style="border: 1px solid #dee2e6; padding: 4px; text-align: center; font-weight: bold; background: #f1f3f5;">
-            ${sumIns > 0 ? fmt(sumIns) : ''}
-          </td>
-          <td style="border: 1px solid #dee2e6; padding: 4px; text-align: center; background: #ffeb3b;">
-            <input type="number" step="any" value="${r.contaFinale !== "" ? r.contaFinale : ''}" style="width: 100%; padding: 3px; text-align: center; border: none; background: transparent; font-weight: bold;" onchange="updateDistCell(${dIdx}, ${rIdx}, 'contaFinale', this.value)">
-          </td>
-          <td style="border: 1px solid #dee2e6; padding: 4px; text-align: center; font-weight: bold; color: #0d47a1;">
-            ${venduto !== "" ? fmt(venduto) : ''}
-          </td>
-          <td style="border: 1px solid #dee2e6; padding: 4px; text-align: center;">
-            <input type="number" step="any" value="${r.prezzoVendita !== "" ? r.prezzoVendita : ''}" placeholder="€ 0,00" style="width: 100%; padding: 3px; text-align: center; border: 1px solid #ccc; border-radius: 3px;" onchange="updateDistCell(${dIdx}, ${rIdx}, 'prezzoVendita', this.value)">
-          </td>
-          <td style="border: 1px solid #dee2e6; padding: 4px; text-align: right; font-weight: bold; color: #1b5e20; padding-right: 8px;">
-            ${incasso > 0 ? '€ ' + fmtMoney(incasso) : ''}
-          </td>
-        </tr>
-      `;
-    });
-
-    html += `
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
-  }
-
-  html += `</td></tr>`;
-  $("tbody").innerHTML = html;
-}
-
-function updateDistributorsCount(val) {
-  let cfg = getActiveCinemaDistributorConfig();
-  cfg.distributorsCount = parseInt(val) || 2;
-  saveDistributorConfig();
-  renderDistributorsView();
-}
-
-function updateDistMeta(dIdx, field, val) {
-  let cfg = getActiveCinemaDistributorConfig();
-  if (cfg.distributors[dIdx]) {
-    cfg.distributors[dIdx][field] = val;
-    saveDistributorConfig();
-    renderDistributorsView();
-  }
-}
-
-function updateDistCell(dIdx, rIdx, field, val) {
-  let cfg = getActiveCinemaDistributorConfig();
-  if (cfg.distributors[dIdx] && cfg.distributors[dIdx].rows[rIdx]) {
-    cfg.distributors[dIdx].rows[rIdx][field] = (field === 'stockIniziale' || field === 'contaFinale' || field === 'prezzoVendita') ? (val === "" ? "" : n(val)) : val;
-    saveDistributorConfig();
-    renderDistributorsView();
-  }
-}
-
-function updateDistIns(dIdx, rIdx, insIdx, val) {
-  let cfg = getActiveCinemaDistributorConfig();
-  if (cfg.distributors[dIdx] && cfg.distributors[dIdx].rows[rIdx]) {
-    cfg.distributors[dIdx].rows[rIdx].ins[insIdx] = val === "" ? "" : n(val);
-    saveDistributorConfig();
-    renderDistributorsView();
-  }
-}
-
-function clearDistributore(dIdx) {
-  if (confirm("Sei sicuro di voler pulire questo distributore?")) {
-    let cfg = getActiveCinemaDistributorConfig();
-    if (cfg.distributors[dIdx]) {
-      cfg.distributors[dIdx].rows = Array(20).fill().map(() => ({ product: "", stockIniziale: "", ins: ["", "", "", "", ""], contaFinale: "", prezzoVendita: "" }));
-      saveDistributorConfig();
-      renderDistributorsView();
-    }
-  }
-}
-
 function renderMultiInput(whIdx, code, fieldType, unitSize) {
   const c = getCount(whIdx, code);
   const arr = c[fieldType] || [0];
+  
+  // INIBIZIONE / BLOCCO RIGOROSO: se la size è 0 o assente, disabilita il campo ed evita l'inserimento
+  const isDisabled = (fieldType === 'box' && (!unitSize || unitSize <= 0)) || 
+                     (fieldType === 'sleeve' && (!unitSize || unitSize <= 0));
+
+  if (isDisabled) {
+    return `<span style="color: #adb5bd; font-size: 0.8rem; font-style: italic;">N/D</span>`;
+  }
   
   return arr.map((val, idx) => `
     <div style="display: inline-flex; align-items: center; gap: 4px; margin: 2px;">
@@ -1197,52 +989,4 @@ function recalcKPIs() {
   if ($("kpiAtteso")) $("kpiAtteso").textContent = fmt(totAtteso);
   if ($("kpiRilevato")) $("kpiRilevato").textContent = fmt(totRilevato);
   if ($("kpiValore")) $("kpiValore").textContent = `€ ${fmtMoney(totDiffValore)}`;
-}
-
-// Handler specifici configurazioni Caramelle
-function updateCandyBlocksCount(val) { getActiveCinemaCandyConfig().blocksCount = parseInt(val) || 2; saveCandyConfig(); renderCandyView(); }
-function updateCandyOrientation(val) { getActiveCinemaCandyConfig().orientation = val; saveCandyConfig(); renderCandyView(); }
-function updateCandyTaraVal(idx, val) { getActiveCinemaCandyConfig().tares[idx] = n(val); saveCandyConfig(); renderCandyView(); }
-function updateCandyBlockName(bIndex, val) { getActiveCinemaCandyConfig().blocks[bIndex].name = val; saveCandyConfig(); }
-function updateCandyBlockDim(bIndex, field, val) {
-  getActiveCinemaCandyConfig().blocks[bIndex][field] = parseInt(val) || 1;
-  saveCandyConfig();
-  renderCandyView();
-}
-function updateCandyCell(bIndex, r, c, subField, val) {
-  let cfg = getActiveCinemaCandyConfig();
-  if(!cfg.blocks[bIndex].gridValues) cfg.blocks[bIndex].gridValues = {};
-  if(!cfg.blocks[bIndex].gridValues[r]) cfg.blocks[bIndex].gridValues[r] = {};
-  if(!cfg.blocks[bIndex].gridValues[r][c]) cfg.blocks[bIndex].gridValues[r][c] = { weight: "", taraIdx: 0 };
-  if (subField === 'weight') cfg.blocks[bIndex].gridValues[r][c].weight = n(val);
-  else if (subField === 'taraIdx') cfg.blocks[bIndex].gridValues[r][c].taraIdx = parseInt(val) || 0;
-  saveCandyConfig();
-  renderCandyView();
-}
-function updateCandyBusta(idx, field, val) {
-  let cfg = getActiveCinemaCandyConfig();
-  if(!cfg.buste[idx]) cfg.buste[idx] = {kg: 0, sleeve: 0};
-  cfg.buste[idx][field] = n(val);
-  saveCandyConfig();
-  renderCandyView();
-}
-
-// Handler specifici configurazioni Post Mix
-function updatePostMixBlocksCount(val) { getActiveCinemaPostMixConfig().blocksCount = parseInt(val) || 1; savePostMixConfig(); renderPostMixView(); }
-function updatePostMixOrientation(val) { getActiveCinemaPostMixConfig().orientation = val; savePostMixConfig(); renderPostMixView(); }
-function updatePostMixBlockName(bIndex, val) { getActiveCinemaPostMixConfig().blocks[bIndex].name = val; savePostMixConfig(); }
-function updatePostMixBlockDim(bIndex, field, val) {
-  getActiveCinemaPostMixConfig().blocks[bIndex][field] = parseInt(val) || 1;
-  savePostMixConfig();
-  renderPostMixView();
-}
-function updatePostMixCell(bIndex, r, c, subField, val) {
-  let cfg = getActiveCinemaPostMixConfig();
-  if(!cfg.blocks[bIndex].gridValues) cfg.blocks[bIndex].gridValues = {};
-  if(!cfg.blocks[bIndex].gridValues[r]) cfg.blocks[bIndex].gridValues[r] = {};
-  if(!cfg.blocks[bIndex].gridValues[r][c]) cfg.blocks[bIndex].gridValues[r][c] = { weight: "", prodName: "" };
-  if (subField === 'weight') cfg.blocks[bIndex].gridValues[r][c].weight = n(val);
-  else if (subField === 'prodName') cfg.blocks[bIndex].gridValues[r][c].prodName = val;
-  savePostMixConfig();
-  renderPostMixView();
 }
