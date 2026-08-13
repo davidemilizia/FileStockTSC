@@ -177,7 +177,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSetupFromStorage();
   loadCountsFromStorage();
   updateHeaderTitle();
-  injectExcelExportButton(); // Sostituito con l'esportazione Excel pulita
+  injectExcelExportButton(); // Inserisce entrambi i pulsanti di esportazione Excel
 
   $("magFile").addEventListener("change", e => {
     const f = e.target.files[0];
@@ -212,34 +212,50 @@ document.addEventListener("DOMContentLoaded", () => {
   $("search").addEventListener("input", render);
 });
 
-/* --- FUNZIONE AGGIUNTA PULSANTE ESPORTAZIONE EXCEL PULITO --- */
+/* --- INIEZIONE DOPPIO PULSANTE ESPORTAZIONE EXCEL --- */
 function injectExcelExportButton() {
   const headerContainer = document.querySelector("header") || document.querySelector(".header") || document.body;
-  if ($("btnExportExcel")) return;
+  if ($("exportButtonsContainer")) return;
 
-  const exportBtn = document.createElement("button");
-  exportBtn.id = "btnExportExcel";
-  exportBtn.className = "btn btn-primary";
-  exportBtn.innerHTML = "📥 Esporta Excel Completo";
-  exportBtn.style.cssText = "background: #107c41; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 10px;";
-  exportBtn.onclick = () => exportCompleteInventoryToExcel();
+  const btnContainer = document.createElement("div");
+  btnContainer.id = "exportButtonsContainer";
+  btnContainer.className = "no-print";
+  btnContainer.style.cssText = "display: flex; gap: 10px; margin: 10px 0; align-items: center; flex-wrap: wrap;";
+
+  // Pulsante 1: Esporta dati inseriti (con valori e calcoli)
+  const exportCurrentBtn = document.createElement("button");
+  exportCurrentBtn.id = "btnExportCurrent";
+  exportCurrentBtn.className = "btn btn-primary";
+  exportCurrentBtn.innerHTML = "📥 Esporta in Excel (Dati Inseriti)";
+  exportCurrentBtn.style.cssText = "background: #107c41; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;";
+  exportCurrentBtn.onclick = () => exportCurrentInventoryToExcel();
+
+  // Pulsante 2: Esporta Excel Completo (Template vuoto con 5 caselle per box, sleeve, sfuso per stampa)
+  const exportTemplateBtn = document.createElement("button");
+  exportTemplateBtn.id = "btnExportExcel";
+  exportTemplateBtn.className = "btn btn-secondary";
+  exportTemplateBtn.innerHTML = "📋 Esporta Excel Completo (Template Vuoto da Stampare)";
+  exportTemplateBtn.style.cssText = "background: #005a9e; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;";
+  exportTemplateBtn.onclick = () => exportEmptyTemplateToExcel();
+
+  btnContainer.appendChild(exportCurrentBtn);
+  btnContainer.appendChild(exportTemplateBtn);
 
   const titleEl = $("appTitle") || headerContainer;
   if (titleEl && titleEl.parentNode) {
-    titleEl.parentNode.appendChild(exportBtn);
+    titleEl.parentNode.insertBefore(btnContainer, titleEl.nextSibling);
   } else {
-    document.body.insertBefore(exportBtn, document.body.firstChild);
+    document.body.insertBefore(btnContainer, document.body.firstChild);
   }
 }
 
-/* --- LOGICA DI ESPORTAZIONE EXCEL NATIVA CON TUTTI I PRODOTTI E SENZA VOCI SUPERFLUE --- */
-function exportCompleteInventoryToExcel() {
+/* --- FUNZIONE 1: ESPORTA DATI ATTUALI INSERITI --- */
+function exportCurrentInventoryToExcel() {
   if (!rows || rows.length === 0) {
     alert("Nessun dato prodotto caricato da esportare!");
     return;
   }
 
-  // Determina il nome del magazzino o della sezione attiva
   let activeMagName = cinemaName;
   if (currentTab === 'tot') {
     activeMagName = `${cinemaName} - RIEPILOGO TOTALE`;
@@ -253,35 +269,17 @@ function exportCompleteInventoryToExcel() {
     activeMagName = `${cinemaName} - ${warehouses[currentTab]}`;
   }
 
-  // Costruisce la matrice dei dati pulita (senza fronzoli iniziali, solo intestazioni e righe prodotti)
   let excelData = [];
-
-  // Riga 1: Nome del magazzino / contesto pulito
   excelData.push([activeMagName]);
-  excelData.push([]); // Riga vuota di spaziatura
+  excelData.push([]); 
 
-  // Intestazioni tabella prodotti completa
   excelData.push([
-    "Prodotto", 
-    "U.M.", 
-    "Iniziale", 
-    "Danni", 
-    "Venduto", 
-    "Size Box", 
-    "Q.tà Box", 
-    "Size Sleeve", 
-    "Q.tà Sleeve", 
-    "Q.tà Sfuso", 
-    "Atteso", 
-    "Rilevato Base", 
-    "Da Kit/Speciale", 
-    "Effettivo Totale", 
-    "Diff. Totale", 
-    "Costo Unitario", 
-    "Diff. Valore"
+    "Prodotto", "U.M.", "Iniziale", "Danni", "Venduto", 
+    "Size Box", "Q.tà Box", "Size Sleeve", "Q.tà Sleeve", "Q.tà Sfuso", 
+    "Atteso", "Rilevato Base", "Da Kit/Speciale", "Effettivo Totale", "Diff. Totale", 
+    "Costo Unitario", "Diff. Valore"
   ]);
 
-  // Inserisce TUTTI i prodotti dell'elenco completo
   rows.forEach(r => {
     let totBoxLocal = 0, totSleeveLocal = 0, totSfusoLocal = 0;
     if (currentTab === 'tot') {
@@ -305,34 +303,68 @@ function exportCompleteInventoryToExcel() {
     const diffValore = diffTotale * (r.standardCost || 0);
 
     excelData.push([
-      r.name,
-      r.uom,
-      r.iniziale,
-      r.danni,
-      r.venduto,
-      r.boxSize || 0,
-      totBoxLocal,
-      r.sleeveSize || 0,
-      totSleeveLocal,
-      totSfusoLocal,
-      r.atteso,
-      baseRilevato,
-      kitPart,
-      effettivoTotaleComplesso,
-      diffTotale,
-      r.standardCost || 0,
-      diffValore
+      r.name, r.uom, r.iniziale, r.danni, r.venduto,
+      r.boxSize || 0, totBoxLocal, r.sleeveSize || 0, totSleeveLocal, totSfusoLocal,
+      r.atteso, baseRilevato, kitPart, effettivoTotaleComplesso, diffTotale,
+      r.standardCost || 0, diffValore
     ]);
   });
 
-  // Crea il foglio di lavoro e il workbook con SheetJS
   const ws = XLSX.utils.aoa_to_sheet(excelData);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Inventario");
-
-  // Nome file pulito basato sul magazzino
   const safeFileName = activeMagName.replace(/[^a-zA-Z0-9-_]/g, "_");
   XLSX.writeFile(wb, `Inventario_${safeFileName}.xlsx`);
+}
+
+/* --- FUNZIONE 2: TEMPLATE VUOTO CON 5 CASELLE PER BOX, SLEEVE E SFUSO --- */
+function exportEmptyTemplateToExcel() {
+  if (!rows || rows.length === 0) {
+    alert("Nessun prodotto caricato!");
+    return;
+  }
+
+  let activeMagName = cinemaName;
+  if (typeof currentTab === 'number' && warehouses[currentTab]) {
+    activeMagName = `${cinemaName} - ${warehouses[currentTab]}`;
+  } else {
+    activeMagName = `${cinemaName} - Template Conteggio`;
+  }
+
+  let excelData = [];
+  excelData.push([activeMagName]);
+  excelData.push([]); 
+
+  // Intestazione con Prodotto, U.M., Size Box, 5 celle box, Size Sleeve, 5 celle sleeve, 5 celle sfuso, Valore Atteso
+  excelData.push([
+    "Prodotto", 
+    "U.M.", 
+    "Size Box", 
+    "Box 1", "Box 2", "Box 3", "Box 4", "Box 5",
+    "Size Sleeve", 
+    "Sleeve 1", "Sleeve 2", "Sleeve 3", "Sleeve 4", "Sleeve 5",
+    "Sfuso 1", "Sfuso 2", "Sfuso 3", "Sfuso 4", "Sfuso 5",
+    "Valore Atteso"
+  ]);
+
+  rows.forEach(r => {
+    excelData.push([
+      r.name,
+      r.uom,
+      r.boxSize || 0,
+      "", "", "", "", "", // 5 caselle vuote box
+      r.sleeveSize || 0,
+      "", "", "", "", "", // 5 caselle vuote sleeve
+      "", "", "", "", "", // 5 caselle vuote sfuso
+      r.atteso
+    ]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(excelData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Template_Conteggio");
+  const safeFileName = activeMagName.replace(/[^a-zA-Z0-9-_]/g, "_");
+  XLSX.writeFile(wb, `Template_Conteggio_${safeFileName}.xlsx`);
 }
 
 function toggleFilesSection() {
