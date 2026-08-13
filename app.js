@@ -177,7 +177,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSetupFromStorage();
   loadCountsFromStorage();
   updateHeaderTitle();
-  injectPrintButton(); // Aggiunge dinamicamente il pulsante di stampa
+  injectExcelExportButton(); // Sostituito con l'esportazione Excel pulita
 
   $("magFile").addEventListener("change", e => {
     const f = e.target.files[0];
@@ -212,25 +212,127 @@ document.addEventListener("DOMContentLoaded", () => {
   $("search").addEventListener("input", render);
 });
 
-/* --- FUNZIONE AGGIUNTA PULSANTE DI STAMPA --- */
-function injectPrintButton() {
+/* --- FUNZIONE AGGIUNTA PULSANTE ESPORTAZIONE EXCEL PULITO --- */
+function injectExcelExportButton() {
   const headerContainer = document.querySelector("header") || document.querySelector(".header") || document.body;
-  if ($("btnStampaInventario")) return;
+  if ($("btnExportExcel")) return;
 
-  const printBtn = document.createElement("button");
-  printBtn.id = "btnStampaInventario";
-  printBtn.className = "btn btn-primary";
-  printBtn.innerHTML = "🖨️ Stampa / Salva PDF";
-  printBtn.style.cssText = "background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 10px;";
-  printBtn.onclick = () => window.print();
+  const exportBtn = document.createElement("button");
+  exportBtn.id = "btnExportExcel";
+  exportBtn.className = "btn btn-primary";
+  exportBtn.innerHTML = "📥 Esporta Excel Completo";
+  exportBtn.style.cssText = "background: #107c41; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 10px;";
+  exportBtn.onclick = () => exportCompleteInventoryToExcel();
 
-  // Inserisce il pulsante vicino al titolo o nella barra dei comandi principale se esiste
   const titleEl = $("appTitle") || headerContainer;
   if (titleEl && titleEl.parentNode) {
-    titleEl.parentNode.appendChild(printBtn);
+    titleEl.parentNode.appendChild(exportBtn);
   } else {
-    document.body.insertBefore(printBtn, document.body.firstChild);
+    document.body.insertBefore(exportBtn, document.body.firstChild);
   }
+}
+
+/* --- LOGICA DI ESPORTAZIONE EXCEL NATIVA CON TUTTI I PRODOTTI E SENZA VOCI SUPERFLUE --- */
+function exportCompleteInventoryToExcel() {
+  if (!rows || rows.length === 0) {
+    alert("Nessun dato prodotto caricato da esportare!");
+    return;
+  }
+
+  // Determina il nome del magazzino o della sezione attiva
+  let activeMagName = cinemaName;
+  if (currentTab === 'tot') {
+    activeMagName = `${cinemaName} - RIEPILOGO TOTALE`;
+  } else if (currentTab === 'candy') {
+    activeMagName = `${cinemaName} - CARAMELLE`;
+  } else if (currentTab === 'postmix') {
+    activeMagName = `${cinemaName} - POST MIX`;
+  } else if (currentTab === 'distributors') {
+    activeMagName = `${cinemaName} - DISTRIBUTORI`;
+  } else if (typeof currentTab === 'number' && warehouses[currentTab]) {
+    activeMagName = `${cinemaName} - ${warehouses[currentTab]}`;
+  }
+
+  // Costruisce la matrice dei dati pulita (senza fronzoli iniziali, solo intestazioni e righe prodotti)
+  let excelData = [];
+
+  // Riga 1: Nome del magazzino / contesto pulito
+  excelData.push([activeMagName]);
+  excelData.push([]); // Riga vuota di spaziatura
+
+  // Intestazioni tabella prodotti completa
+  excelData.push([
+    "Prodotto", 
+    "U.M.", 
+    "Iniziale", 
+    "Danni", 
+    "Venduto", 
+    "Size Box", 
+    "Q.tà Box", 
+    "Size Sleeve", 
+    "Q.tà Sleeve", 
+    "Q.tà Sfuso", 
+    "Atteso", 
+    "Rilevato Base", 
+    "Da Kit/Speciale", 
+    "Effettivo Totale", 
+    "Diff. Totale", 
+    "Costo Unitario", 
+    "Diff. Valore"
+  ]);
+
+  // Inserisce TUTTI i prodotti dell'elenco completo
+  rows.forEach(r => {
+    let totBoxLocal = 0, totSleeveLocal = 0, totSfusoLocal = 0;
+    if (currentTab === 'tot') {
+      warehouses.forEach((_, wIdx) => {
+        const cWh = getCount(wIdx, r.code);
+        totBoxLocal += sumArr(cWh.box);
+        totSleeveLocal += sumArr(cWh.sleeve);
+        totSfusoLocal += sumArr(cWh.sfuso);
+      });
+    } else if (typeof currentTab === 'number') {
+      const c = getCount(currentTab, r.code);
+      totBoxLocal = sumArr(c.box);
+      totSleeveLocal = sumArr(c.sleeve);
+      totSfusoLocal = sumArr(c.sfuso);
+    }
+
+    const baseRilevato = (totBoxLocal * r.boxSize) + (totSleeveLocal * r.sleeveSize) + totSfusoLocal;
+    const kitPart = getKitContributionDetail(r.name, r.code);
+    const effettivoTotaleComplesso = getGlobalRilevato(r.code, r);
+    const diffTotale = effettivoTotaleComplesso - r.atteso;
+    const diffValore = diffTotale * (r.standardCost || 0);
+
+    excelData.push([
+      r.name,
+      r.uom,
+      r.iniziale,
+      r.danni,
+      r.venduto,
+      r.boxSize || 0,
+      totBoxLocal,
+      r.sleeveSize || 0,
+      totSleeveLocal,
+      totSfusoLocal,
+      r.atteso,
+      baseRilevato,
+      kitPart,
+      effettivoTotaleComplesso,
+      diffTotale,
+      r.standardCost || 0,
+      diffValore
+    ]);
+  });
+
+  // Crea il foglio di lavoro e il workbook con SheetJS
+  const ws = XLSX.utils.aoa_to_sheet(excelData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Inventario");
+
+  // Nome file pulito basato sul magazzino
+  const safeFileName = activeMagName.replace(/[^a-zA-Z0-9-_]/g, "_");
+  XLSX.writeFile(wb, `Inventario_${safeFileName}.xlsx`);
 }
 
 function toggleFilesSection() {
@@ -685,7 +787,6 @@ function getGlobalRilevato(code, r) {
     }
   }
 
-  // Integrazione Conta Finale Distributori
   const distTotals = getDistributorsContaFinaleTotals();
   if (distTotals[rNameClean]) {
     basePezzi += distTotals[rNameClean];
