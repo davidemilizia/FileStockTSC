@@ -332,9 +332,23 @@ function exportCurrentInventoryToExcel() {
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   
-  // Formattazione professionale delle celle numeriche e larghezza colonne
+  // Formattazione professionale delle celle, bordi, font e larghezze
   const range = XLSX.utils.decode_range(ws['!ref']);
   const colsWidth = [];
+
+  const thinBorder = {
+    top: { style: 'thin', color: { rgb: "D3D3D3" } },
+    bottom: { style: 'thin', color: { rgb: "D3D3D3" } },
+    left: { style: 'thin', color: { rgb: "D3D3D3" } },
+    right: { style: 'thin', color: { rgb: "D3D3D3" } }
+  };
+
+  const headerBorder = {
+    top: { style: 'medium', color: { rgb: "000000" } },
+    bottom: { style: 'medium', color: { rgb: "000000" } },
+    left: { style: 'thin', color: { rgb: "D3D3D3" } },
+    right: { style: 'thin', color: { rgb: "D3D3D3" } }
+  };
 
   for (let R = range.s.r; R <= range.e.r; ++R) {
     for (let C = range.s.c; C <= range.e.c; ++C) {
@@ -342,23 +356,50 @@ function exportCurrentInventoryToExcel() {
       const cell = ws[cellAddress];
       if (!cell) continue;
 
-      // Imposta larghezza colonne automatica basata sul contenuto
       const valStr = String(cell.v || "");
-      colsWidth[C] = Math.max(colsWidth[C] || 10, valStr.length + 3);
+      colsWidth[C] = Math.max(colsWidth[C] || 10, valStr.length + 4);
 
-      // Formati numerici a partire dalla riga della tabella (indice 2)
-      if (R >= 2 && C >= 2) {
-        cell.t = 'n';
-        if (C === 15 || C === 16) {
-          cell.z = '€ #,##0.00'; // Formato valuta
-        } else {
-          cell.z = '#,##0.##';  // Formato numerico generale con decimali opzionali
+      // Stile intestazione tabella (Riga 2)
+      if (R === 2) {
+        cell.s = {
+          font: { bold: true, color: { rgb: "FFFFFF" }, name: "Calibri", sz: 11 },
+          fill: { fgColor: { rgb: "1F4E78" } }, // Blu professionale
+          alignment: { horizontal: "center", vertical: "center", wrapText: true },
+          border: headerBorder
+        };
+      } 
+      // Titolo principale in alto
+      else if (R === 0) {
+        cell.s = {
+          font: { bold: true, sz: 14, color: { rgb: "1F4E78" }, name: "Calibri" }
+        };
+      }
+      // Righe dei dati (da riga 3 in poi)
+      else if (R > 2) {
+        let align = "right";
+        if (C === 0) align = "left";
+        else if (C === 1) align = "center";
+
+        cell.s = {
+          font: { name: "Calibri", sz: 11 },
+          alignment: { horizontal: align, vertical: "center" },
+          border: thinBorder
+        };
+
+        if (C >= 2) {
+          cell.t = 'n';
+          if (C === 15 || C === 16) {
+            cell.z = '€ #,##0.00';
+          } else {
+            cell.z = '#,##0.##';
+          }
         }
       }
     }
   }
 
   ws['!cols'] = colsWidth.map(w => ({wch: w}));
+  ws['!rows'] = [{ hpt: 25 }, { hpt: 15 }, { hpt: 28 }]; // Spaziatura ottimale
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Inventario");
@@ -399,9 +440,9 @@ function exportEmptyTemplateToExcel() {
       r.name,
       r.uom,
       r.boxSize || 0,
-      r.boxSize > 0 ? "" : "N/D", r.boxSize > 0 ? "" : "N/D", r.boxSize > 0 ? "" : "N/D", r.boxSize > 0 ? "" : "N/D", r.boxSize > 0 ? "" : "N/D",
+      r.boxSize > 0 ? "" : "-", r.boxSize > 0 ? "" : "-", r.boxSize > 0 ? "" : "-", r.boxSize > 0 ? "" : "-", r.boxSize > 0 ? "" : "-",
       r.sleeveSize || 0,
-      r.sleeveSize > 0 ? "" : "N/D", r.sleeveSize > 0 ? "" : "N/D", r.sleeveSize > 0 ? "" : "N/D", r.sleeveSize > 0 ? "" : "N/D", r.sleeveSize > 0 ? "" : "N/D",
+      r.sleeveSize > 0 ? "" : "-", r.sleeveSize > 0 ? "" : "-", r.sleeveSize > 0 ? "" : "-", r.sleeveSize > 0 ? "" : "-", r.sleeveSize > 0 ? "" : "-",
       "", "", "", "", "",
       r.atteso
     ]);
@@ -411,20 +452,62 @@ function exportEmptyTemplateToExcel() {
 
   const range = XLSX.utils.decode_range(ws['!ref']);
   const colsWidth = [];
+
+  const thinBorder = {
+    top: { style: 'thin', color: { rgb: "D3D3D3" } },
+    bottom: { style: 'thin', color: { rgb: "D3D3D3" } },
+    left: { style: 'thin', color: { rgb: "D3D3D3" } },
+    right: { style: 'thin', color: { rgb: "D3D3D3" } }
+  };
+
+  const headerBorder = {
+    top: { style: 'medium', color: { rgb: "000000" } },
+    bottom: { style: 'medium', color: { rgb: "000000" } },
+    left: { style: 'thin', color: { rgb: "D3D3D3" } },
+    right: { style: 'thin', color: { rgb: "D3D3D3" } }
+  };
+
   for (let R = range.s.r; R <= range.e.r; ++R) {
     for (let C = range.s.c; C <= range.e.c; ++C) {
       const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
       const cell = ws[cellAddress];
       if (!cell) continue;
+
       const valStr = String(cell.v || "");
-      colsWidth[C] = Math.max(colsWidth[C] || 10, valStr.length + 3);
-      if (R >= 2 && (C === 2 || C === 8 || C === 19)) {
-        cell.t = 'n';
-        cell.z = '#,##0.##';
+      colsWidth[C] = Math.max(colsWidth[C] || 10, valStr.length + 4);
+
+      if (R === 2) {
+        cell.s = {
+          font: { bold: true, color: { rgb: "FFFFFF" }, name: "Calibri", sz: 11 },
+          fill: { fgColor: { rgb: "2F5597" } },
+          alignment: { horizontal: "center", vertical: "center", wrapText: true },
+          border: headerBorder
+        };
+      } else if (R === 0) {
+        cell.s = {
+          font: { bold: true, sz: 14, color: { rgb: "2F5597" }, name: "Calibri" }
+        };
+      } else if (R > 2) {
+        let align = "right";
+        if (C === 0) align = "left";
+        else if (C === 1) align = "center";
+
+        cell.s = {
+          font: { name: "Calibri", sz: 11 },
+          alignment: { horizontal: align, vertical: "center" },
+          border: thinBorder
+        };
+
+        if (R >= 2 && (C === 2 || C === 8 || C === 19)) {
+          cell.t = 'n';
+          cell.z = '#,##0.##';
+        }
       }
     }
   }
+
   ws['!cols'] = colsWidth.map(w => ({wch: w}));
+  ws['!rows'] = [{ hpt: 25 }, { hpt: 15 }, { hpt: 28 }];
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Template_Conteggio");
@@ -999,7 +1082,7 @@ function renderMultiInput(whIdx, code, fieldType, unitSize) {
                      (fieldType === 'sleeve' && (!unitSize || unitSize <= 0));
 
   if (isDisabled) {
-    return `<span style="color: #adb5bd; font-size: 0.8rem; font-style: italic;">N/D</span>`;
+    return `<span style="color: #adb5bd; font-size: 0.8rem; font-style: italic;">-</span>`;
   }
   
   return arr.map((val, idx) => `
