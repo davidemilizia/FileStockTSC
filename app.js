@@ -177,7 +177,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSetupFromStorage();
   loadCountsFromStorage();
   updateHeaderTitle();
-  injectExcelExportButton();
+  injectExcelTemplateButton();
 
   $("magFile").addEventListener("change", e => {
     const f = e.target.files[0];
@@ -212,31 +212,23 @@ document.addEventListener("DOMContentLoaded", () => {
   $("search").addEventListener("input", render);
 });
 
-/* --- INIEZIONE DOPPIO PULSANTE ESPORTAZIONE EXCEL --- */
-function injectExcelExportButton() {
+/* --- INIEZIONE PULSANTE TEMPLATE EXCEL IN ALTO --- */
+function injectExcelTemplateButton() {
   const headerContainer = document.querySelector("header") || document.querySelector(".header") || document.body;
-  if ($("exportButtonsContainer")) return;
+  if ($("exportTemplateBtnContainer")) return;
 
   const btnContainer = document.createElement("div");
-  btnContainer.id = "exportButtonsContainer";
+  btnContainer.id = "exportTemplateBtnContainer";
   btnContainer.className = "no-print";
   btnContainer.style.cssText = "display: flex; gap: 10px; margin: 10px 0; align-items: center; flex-wrap: wrap;";
 
-  const exportCurrentBtn = document.createElement("button");
-  exportCurrentBtn.id = "btnExportCurrent";
-  exportCurrentBtn.className = "btn btn-primary";
-  exportCurrentBtn.innerHTML = "📥 Esporta in Excel (Dati Inseriti)";
-  exportCurrentBtn.style.cssText = "background: #107c41; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;";
-  exportCurrentBtn.onclick = () => exportCurrentInventoryToExcel();
-
   const exportTemplateBtn = document.createElement("button");
-  exportTemplateBtn.id = "btnExportExcel";
+  exportTemplateBtn.id = "btnExportExcelTemplate";
   exportTemplateBtn.className = "btn btn-secondary";
   exportTemplateBtn.innerHTML = "📋 Esporta Excel Completo (Template Vuoto da Stampare)";
   exportTemplateBtn.style.cssText = "background: #005a9e; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;";
   exportTemplateBtn.onclick = () => exportEmptyTemplateToExcel();
 
-  btnContainer.appendChild(exportCurrentBtn);
   btnContainer.appendChild(exportTemplateBtn);
 
   const titleEl = $("appTitle") || headerContainer;
@@ -244,6 +236,74 @@ function injectExcelExportButton() {
     titleEl.parentNode.insertBefore(btnContainer, titleEl.nextSibling);
   } else {
     document.body.insertBefore(btnContainer, document.body.firstChild);
+  }
+}
+
+/* --- FUNZIONE UTILITARIA PER STILE FOGLI EXCEL --- */
+function applyExcelStyling(ws, data, hasHeaderRows = 2) {
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  ws['!cols'] = [];
+
+  // Calcola larghezza colonne automatica
+  for (let C = range.s.c; C <= range.e.c; ++C) {
+    let maxLen = 10;
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      const cell = ws[XLSX.utils.encode_cell({r: R, c: C})];
+      if (cell && cell.v !== undefined) {
+        const len = String(cell.v).length;
+        if (len > maxLen) maxLen = len;
+      }
+    }
+    ws['!cols'].push({wch: Math.min(maxLen + 3, 35)});
+  }
+
+  // Applica stili visivi alle celle
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellRef = XLSX.utils.encode_cell({r: R, c: C});
+      if (!ws[cellRef]) continue;
+
+      if (!ws[cellRef].s) ws[cellRef].s = {};
+
+      // Titolo principale in alto
+      if (R === 0) {
+        ws[cellRef].s = {
+          font: { bold: true, sz: 14, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "1F4E78" } },
+          alignment: { vertical: "center", horizontal: "center" }
+        };
+        continue;
+      }
+
+      // Intestazioni tabella
+      if (R === hasHeaderRows) {
+        ws[cellRef].s = {
+          font: { bold: true, sz: 10, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "343A40" } },
+          alignment: { vertical: "center", horizontal: "center", wrapText: true },
+          border: {
+            top: { style: "thin", color: { rgb: "000000" } },
+            bottom: { style: "medium", color: { rgb: "000000" } },
+            left: { style: "thin", color: { rgb: "CCCCCC" } },
+            right: { style: "thin", color: { rgb: "CCCCCC" } }
+          }
+        };
+        continue;
+      }
+
+      // Righe dati con effetto Zebra e bordi leggeri
+      if (R > hasHeaderRows) {
+        const isEven = (R % 2 === 0);
+        ws[cellRef].s.fill = { fgColor: { rgb: isEven ? "F9FBFD" : "FFFFFF" } };
+        ws[cellRef].s.border = {
+          top: { style: "thin", color: { rgb: "E0E0E0" } },
+          bottom: { style: "thin", color: { rgb: "E0E0E0" } },
+          left: { style: "thin", color: { rgb: "E0E0E0" } },
+          right: { style: "thin", color: { rgb: "E0E0E0" } }
+        };
+        ws[cellRef].s.font = { sz: 10 };
+      }
+    }
   }
 }
 
@@ -308,6 +368,8 @@ function exportCurrentInventoryToExcel() {
   });
 
   const ws = XLSX.utils.aoa_to_sheet(excelData);
+  applyExcelStyling(ws, excelData, 2);
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Inventario");
   const safeFileName = activeMagName.replace(/[^a-zA-Z0-9-_]/g, "_");
@@ -356,6 +418,8 @@ function exportEmptyTemplateToExcel() {
   });
 
   const ws = XLSX.utils.aoa_to_sheet(excelData);
+  applyExcelStyling(ws, excelData, 2);
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Template_Conteggio");
   const safeFileName = activeMagName.replace(/[^a-zA-Z0-9-_]/g, "_");
@@ -925,7 +989,6 @@ function renderMultiInput(whIdx, code, fieldType, unitSize) {
   const c = getCount(whIdx, code);
   const arr = c[fieldType] || [0];
   
-  // INIBIZIONE / BLOCCO RIGOROSO: se la size è 0 o assente, disabilita il campo ed evita l'inserimento
   const isDisabled = (fieldType === 'box' && (!unitSize || unitSize <= 0)) || 
                      (fieldType === 'sleeve' && (!unitSize || unitSize <= 0));
 
