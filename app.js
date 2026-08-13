@@ -1,10 +1,4 @@
-/* --- SCRIPT COMPLETO APP.JS CON AGGIUNTA STAMPA FOGLIO CONTEGGIO MANUALE --- */
-
-let prezzo = n(r.prezzoVendita);
-let diff = (stockIni + sumIns) - contaFin;
-if (diff > 0 && prezzo > 0) {
-  totalIncassoDist += diff * prezzo;
-}
+/* --- SCRIPT APP.JS CON AGGIUNTA STAMPA FOGLIO CONTEGGIO MANUALE --- */
 
 function renderDistributorsView() {
   const cfg = getActiveCinemaDistributorConfig();
@@ -188,7 +182,7 @@ function updateDistIns(dIdx, rIdx, insIdx, val) {
   renderDistributorsView();
 }
 
-/* --- NUOVA FUNZIONE AGGIUNTA: STAMPA FOGLIO CONTEGGIO MANUALE --- */
+/* --- FUNZIONE DI STAMPA AGGIUNTA --- */
 function printManualCountingSheet() {
   const cfg = getActiveCinemaDistributorConfig();
   let printWindow = window.open('', '_blank');
@@ -213,7 +207,7 @@ function printManualCountingSheet() {
     <body>
   `;
 
-  cfg.distributors.forEach((dist, idx) => {
+  cfg.distributors.forEach((dist) => {
     htmlContent += `
       <div class="dist-section">
         <h1>INVENTARIO DISTRIBUTORI AUTOMATICI</h1>
