@@ -213,10 +213,11 @@ document.addEventListener("DOMContentLoaded", () => {
   $("search").addEventListener("input", render);
 });
 
-/* --- PULIZIA VECCHI PULSANTI DUPLICATI --- */
+/* --- PULIZIA TOTALE DEI VECCHI PULSANTI DUPLICATI --- */
 function cleanupOldButtons() {
   document.querySelectorAll('button').forEach(btn => {
-    if (btn.textContent.trim() === 'Esporta in Excel' && !btn.closest('#exportButtonsContainer')) {
+    const txt = btn.textContent.trim();
+    if ((txt === 'Esporta in Excel' || txt.includes('Esporta in Excel')) && btn.id !== 'btnExportCurrent' && btn.id !== 'btnExportExcel') {
       btn.remove();
     }
   });
@@ -224,6 +225,7 @@ function cleanupOldButtons() {
 
 /* --- INIEZIONE DOPPIO PULSANTE ESPORTAZIONE EXCEL --- */
 function injectExcelExportButton() {
+  cleanupOldButtons();
   const headerContainer = document.querySelector("header") || document.querySelector(".header") || document.body;
   if ($("exportButtonsContainer")) return;
 
@@ -332,22 +334,21 @@ function exportCurrentInventoryToExcel() {
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   
-  // Formattazione professionale delle celle, bordi, font e larghezze
   const range = XLSX.utils.decode_range(ws['!ref']);
   const colsWidth = [];
 
   const thinBorder = {
-    top: { style: 'thin', color: { rgb: "D3D3D3" } },
-    bottom: { style: 'thin', color: { rgb: "D3D3D3" } },
-    left: { style: 'thin', color: { rgb: "D3D3D3" } },
-    right: { style: 'thin', color: { rgb: "D3D3D3" } }
+    top: { style: 'thin', color: { rgb: "E0E0E0" } },
+    bottom: { style: 'thin', color: { rgb: "E0E0E0" } },
+    left: { style: 'thin', color: { rgb: "E0E0E0" } },
+    right: { style: 'thin', color: { rgb: "E0E0E0" } }
   };
 
   const headerBorder = {
-    top: { style: 'medium', color: { rgb: "000000" } },
-    bottom: { style: 'medium', color: { rgb: "000000" } },
-    left: { style: 'thin', color: { rgb: "D3D3D3" } },
-    right: { style: 'thin', color: { rgb: "D3D3D3" } }
+    top: { style: 'medium', color: { rgb: "1F4E78" } },
+    bottom: { style: 'medium', color: { rgb: "1F4E78" } },
+    left: { style: 'thin', color: { rgb: "E0E0E0" } },
+    right: { style: 'thin', color: { rgb: "E0E0E0" } }
   };
 
   for (let R = range.s.r; R <= range.e.r; ++R) {
@@ -359,22 +360,19 @@ function exportCurrentInventoryToExcel() {
       const valStr = String(cell.v || "");
       colsWidth[C] = Math.max(colsWidth[C] || 10, valStr.length + 4);
 
-      // Stile intestazione tabella (Riga 2)
       if (R === 2) {
         cell.s = {
           font: { bold: true, color: { rgb: "FFFFFF" }, name: "Calibri", sz: 11 },
-          fill: { fgColor: { rgb: "1F4E78" } }, // Blu professionale
+          fill: { fgColor: { rgb: "1F4E78" } }, 
           alignment: { horizontal: "center", vertical: "center", wrapText: true },
           border: headerBorder
         };
       } 
-      // Titolo principale in alto
       else if (R === 0) {
         cell.s = {
           font: { bold: true, sz: 14, color: { rgb: "1F4E78" }, name: "Calibri" }
         };
       }
-      // Righe dei dati (da riga 3 in poi)
       else if (R > 2) {
         let align = "right";
         if (C === 0) align = "left";
@@ -391,7 +389,7 @@ function exportCurrentInventoryToExcel() {
           if (C === 15 || C === 16) {
             cell.z = '€ #,##0.00';
           } else {
-            cell.z = '#,##0.##';
+            cell.z = '#,##0'; // Formato intero pulito senza decimali o virgole residue
           }
         }
       }
@@ -399,7 +397,7 @@ function exportCurrentInventoryToExcel() {
   }
 
   ws['!cols'] = colsWidth.map(w => ({wch: w}));
-  ws['!rows'] = [{ hpt: 25 }, { hpt: 15 }, { hpt: 28 }]; // Spaziatura ottimale
+  ws['!rows'] = [{ hpt: 25 }, { hpt: 15 }, { hpt: 28 }];
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Inventario");
@@ -454,17 +452,17 @@ function exportEmptyTemplateToExcel() {
   const colsWidth = [];
 
   const thinBorder = {
-    top: { style: 'thin', color: { rgb: "D3D3D3" } },
-    bottom: { style: 'thin', color: { rgb: "D3D3D3" } },
-    left: { style: 'thin', color: { rgb: "D3D3D3" } },
-    right: { style: 'thin', color: { rgb: "D3D3D3" } }
+    top: { style: 'thin', color: { rgb: "E0E0E0" } },
+    bottom: { style: 'thin', color: { rgb: "E0E0E0" } },
+    left: { style: 'thin', color: { rgb: "E0E0E0" } },
+    right: { style: 'thin', color: { rgb: "E0E0E0" } }
   };
 
   const headerBorder = {
-    top: { style: 'medium', color: { rgb: "000000" } },
-    bottom: { style: 'medium', color: { rgb: "000000" } },
-    left: { style: 'thin', color: { rgb: "D3D3D3" } },
-    right: { style: 'thin', color: { rgb: "D3D3D3" } }
+    top: { style: 'medium', color: { rgb: "2F5597" } },
+    bottom: { style: 'medium', color: { rgb: "2F5597" } },
+    left: { style: 'thin', color: { rgb: "E0E0E0" } },
+    right: { style: 'thin', color: { rgb: "E0E0E0" } }
   };
 
   for (let R = range.s.r; R <= range.e.r; ++R) {
@@ -500,7 +498,7 @@ function exportEmptyTemplateToExcel() {
 
         if (R >= 2 && (C === 2 || C === 8 || C === 19)) {
           cell.t = 'n';
-          cell.z = '#,##0.##';
+          cell.z = '#,##0';
         }
       }
     }
