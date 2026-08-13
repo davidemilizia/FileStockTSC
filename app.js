@@ -170,6 +170,16 @@ document.addEventListener("DOMContentLoaded", () => {
   loadCountsFromStorage();
   updateHeaderTitle();
   injectExcelTemplateButton();
+
+  // Collega eventuali pulsanti 'Esporta' già presenti nell'interfaccia principale
+  const bottomExportBtns = document.querySelectorAll("button[onclick*='export'], .btn-export");
+  bottomExportBtns.forEach(btn => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      exportCurrentInventoryToExcel();
+    };
+  });
+
   if ($("magFile")) {
     $("magFile").addEventListener("change", e => {
       const f = e.target.files[0];
@@ -207,21 +217,35 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-/* --- INIEZIONE PULSANTE TEMPLATE EXCEL IN ALTO --- */
+/* --- INIEZIONE PULSANTI AZIONE (BLU + VERDE) IN ALTO --- */
 function injectExcelTemplateButton() {
   const headerContainer = document.querySelector("header") || document.querySelector(".header") || document.body;
   if ($("exportTemplateBtnContainer")) return;
+
   const btnContainer = document.createElement("div");
   btnContainer.id = "exportTemplateBtnContainer";
   btnContainer.className = "no-print";
-  btnContainer.style.cssText = "display: flex; gap: 10px; margin: 10px 0; align-items: center; flex-wrap: wrap;";
+  btnContainer.style.cssText = "display: flex; gap: 12px; margin: 10px 0; align-items: center; flex-wrap: wrap;";
+
+  // 1. Pulsante Blu: Template Vuoto da Stampare
   const exportTemplateBtn = document.createElement("button");
   exportTemplateBtn.id = "btnExportExcelTemplate";
   exportTemplateBtn.className = "btn btn-secondary";
   exportTemplateBtn.innerHTML = "📋 Esporta Excel Completo (Template Vuoto da Stampare)";
-  exportTemplateBtn.style.cssText = "background: #005a9e; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;";
+  exportTemplateBtn.style.cssText = "background: #005a9e; color: white; border: none; padding: 9px 16px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.9rem; box-shadow: 0 2px 4px rgba(0,0,0,0.15);";
   exportTemplateBtn.onclick = () => exportEmptyTemplateToExcel();
+
+  // 2. Pulsante Verde: Report Completo Conteggi Rilevati
+  const exportCountsBtn = document.createElement("button");
+  exportCountsBtn.id = "btnExportExcelCounts";
+  exportCountsBtn.className = "btn btn-success";
+  exportCountsBtn.innerHTML = "📊 Esporta Report Completo (Tutti i Conteggi Rilevati)";
+  exportCountsBtn.style.cssText = "background: #27ae60; color: white; border: none; padding: 9px 16px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.9rem; box-shadow: 0 2px 4px rgba(0,0,0,0.15);";
+  exportCountsBtn.onclick = () => exportCurrentInventoryToExcel();
+
   btnContainer.appendChild(exportTemplateBtn);
+  btnContainer.appendChild(exportCountsBtn);
+
   const titleEl = $("appTitle") || headerContainer;
   if (titleEl && titleEl.parentNode) {
     titleEl.parentNode.insertBefore(btnContainer, titleEl.nextSibling);
@@ -230,7 +254,7 @@ function injectExcelTemplateButton() {
   }
 }
 
-/* --- ESPORTAZIONE INVENTARIO CORRENTE IN EXCEL STILIZZATO (CON KPI E COLORI) --- */
+/* --- ESPORTAZIONE INVENTARIO REALE COMPLETO CON CONTEGGI --- */
 function exportCurrentInventoryToExcel() {
   if (!rows || rows.length === 0) {
     alert("Nessun dato prodotto caricato da esportare!");
@@ -379,7 +403,7 @@ function exportCurrentInventoryToExcel() {
   const a = document.createElement('a');
   const safeFileName = activeMagName.replace(/[^a-zA-Z0-9-_]/g, "_");
   a.href = url;
-  a.download = `Inventario_${safeFileName}.xls`;
+  a.download = `Report_Inventario_${safeFileName}.xls`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -447,7 +471,7 @@ function exportEmptyTemplateToExcel() {
         <td class="text-center">${r.boxSize || '-'}</td>
         ${Array(5).fill(0).map(() => hasBox ? `<td class="empty-cell"></td>` : `<td class="nd-cell">N/D</td>`).join('')}
         <td class="text-center">${r.sleeveSize || '-'}</td>
-        ${Array(5).fill(0).map(() => hasSleeve ? `<td class="empty-cell"></td>` : `<td class="nd-cell">N/D`).join('')}
+        ${Array(5).fill(0).map(() => hasSleeve ? `<td class="empty-cell"></td>` : `<td class="nd-cell">N/D</td>`).join('')}
         ${Array(5).fill(0).map(() => `<td class="empty-cell"></td>`).join('')}
         <td class="text-right" style="font-weight:bold;">${fmt(r.atteso)}</td>
       </tr>
