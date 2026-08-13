@@ -171,14 +171,9 @@ document.addEventListener("DOMContentLoaded", () => {
   updateHeaderTitle();
   injectExcelTemplateButton();
 
-  // Collega eventuali pulsanti 'Esporta' già presenti nell'interfaccia principale
+  // Rimozione di eventuali duplicati in basso
   const bottomExportBtns = document.querySelectorAll("button[onclick*='export'], .btn-export");
-  bottomExportBtns.forEach(btn => {
-    btn.onclick = (e) => {
-      e.preventDefault();
-      exportCurrentInventoryToExcel();
-    };
-  });
+  bottomExportBtns.forEach(btn => btn.remove());
 
   if ($("magFile")) {
     $("magFile").addEventListener("change", e => {
@@ -217,7 +212,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-/* --- INIEZIONE PULSANTI AZIONE (BLU + VERDE) IN ALTO --- */
+/* --- BARRA PULSANTI UNIFICATA IN ALTO --- */
 function injectExcelTemplateButton() {
   const headerContainer = document.querySelector("header") || document.querySelector(".header") || document.body;
   if ($("exportTemplateBtnContainer")) return;
@@ -227,21 +222,21 @@ function injectExcelTemplateButton() {
   btnContainer.className = "no-print";
   btnContainer.style.cssText = "display: flex; gap: 12px; margin: 10px 0; align-items: center; flex-wrap: wrap;";
 
-  // 1. Pulsante Blu: Template Vuoto da Stampare
+  // 1. Pulsante Blu
   const exportTemplateBtn = document.createElement("button");
   exportTemplateBtn.id = "btnExportExcelTemplate";
   exportTemplateBtn.className = "btn btn-secondary";
-  exportTemplateBtn.innerHTML = "📋 Esporta Excel Completo (Template Vuoto da Stampare)";
+  exportTemplateBtn.innerHTML = "📋 Esporta Excel (Template Vuoto)";
   exportTemplateBtn.style.cssText = "background: #005a9e; color: white; border: none; padding: 9px 16px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.9rem; box-shadow: 0 2px 4px rgba(0,0,0,0.15);";
-  exportTemplateBtn.onclick = () => exportEmptyTemplateToExcel();
+  exportTemplateBtn.onclick = () => handleDynamicExport(true);
 
-  // 2. Pulsante Verde: Report Completo Conteggi Rilevati
+  // 2. Pulsante Verde Unico
   const exportCountsBtn = document.createElement("button");
   exportCountsBtn.id = "btnExportExcelCounts";
   exportCountsBtn.className = "btn btn-success";
-  exportCountsBtn.innerHTML = "📊 Esporta Report Completo (Tutti i Conteggi Rilevati)";
+  exportCountsBtn.innerHTML = "📊 Esporta Report (Conteggi Rilevati)";
   exportCountsBtn.style.cssText = "background: #27ae60; color: white; border: none; padding: 9px 16px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.9rem; box-shadow: 0 2px 4px rgba(0,0,0,0.15);";
-  exportCountsBtn.onclick = () => exportCurrentInventoryToExcel();
+  exportCountsBtn.onclick = () => handleDynamicExport(false);
 
   btnContainer.appendChild(exportTemplateBtn);
   btnContainer.appendChild(exportCountsBtn);
@@ -254,7 +249,188 @@ function injectExcelTemplateButton() {
   }
 }
 
-/* --- ESPORTAZIONE INVENTARIO REALE COMPLETO CON CONTEGGI --- */
+/* --- GESTORE DINAMICO ESPORTAZIONE IN BASE AL TAB ATTIVO --- */
+function handleDynamicExport(isEmptyTemplate) {
+  if (currentTab === 'candy') {
+    exportCandyGridExcel(isEmptyTemplate);
+  } else if (currentTab === 'postmix') {
+    exportPostMixGridExcel(isEmptyTemplate);
+  } else if (currentTab === 'distributors') {
+    exportDistributorsExcel(isEmptyTemplate);
+  } else {
+    if (isEmptyTemplate) {
+      exportEmptyTemplateToExcel();
+    } else {
+      exportCurrentInventoryToExcel();
+    }
+  }
+}
+
+/* --- ESPORTAZIONE SPECIFICA CARAMELLE (GRIGLIE + BUSTE) --- */
+function exportCandyGridExcel(isEmpty) {
+  const cfg = getActiveCinemaCandyConfig();
+  let html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="utf-8" />
+      <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; }
+        table { border-collapse: collapse; margin-bottom: 20px; }
+        .title-row { background-color: #D35400; color: #FFFFFF; font-size: 14pt; font-weight: bold; padding: 8px; }
+        .block-title { background-color: #E67E22; color: #FFFFFF; font-size: 11pt; font-weight: bold; padding: 5px; }
+        th, td { border: 1px solid #CCCCCC; text-align: center; padding: 6px; font-size: 9pt; }
+        .header-cell { background-color: #F5CBA7; font-weight: bold; }
+        .val-cell { background-color: #FFFFFF; }
+      </style>
+    </head>
+    <body>
+      <table>
+        <tr><td colspan="15" class="title-row">SCHEDA CARAMELLE — ${esc(cinemaName)} ${isEmpty ? '(TEMPLATE VUOTO)' : '(CONTEGGI)'}</td></tr>
+      </table>
+  `;
+
+  cfg.blocks.forEach(b => {
+    html += `<table><tr><td colspan="${b.columns}" class="block-title">${esc(b.name)}</td></tr>`;
+    for (let r = 0; r < b.rows; r++) {
+      html += `<tr>`;
+      for (let c = 0; c < b.columns; c++) {
+        let cellData = b.gridValues?.[r]?.[c];
+        let valStr = "";
+        if (!isEmpty && cellData) {
+          let w = n(cellData.weight || 0);
+          let tIdx = parseInt(cellData.taraIdx) || 0;
+          let tVal = n(cfg.tares[tIdx] || 0);
+          valStr = `${w} kg (Tara ${tVal})`;
+        }
+        html += `<td class="val-cell">${valStr}</td>`;
+      }
+      html += `</tr>`;
+    }
+    html += `</table><br/>`;
+  });
+
+  html += `
+    <table>
+      <tr><td colspan="4" class="block-title">📦 BUSTE E SCORTE SFUSE</td></tr>
+      <tr class="header-cell"><th>N° Busta</th><th>Kg Lordi</th><th>Sleeve (Pz)</th><th>Totale Netto Kg</th></tr>
+  `;
+  cfg.buste.forEach((b, idx) => {
+    let kg = isEmpty ? "" : b.kg;
+    let sl = isEmpty ? "" : b.sleeve;
+    let tot = isEmpty ? "" : (n(b.kg) + n(b.sleeve)*0.1).toFixed(2);
+    html += `<tr><td>Busta ${idx + 1}</td><td>${kg}</td><td>${sl}</td><td>${tot}</td></tr>`;
+  });
+  html += `</table></body></html>`;
+
+  downloadExcelBlob(html, `Caramelle_${cinemaName}_${isEmpty ? 'Template' : 'Report'}.xls`);
+}
+
+/* --- ESPORTAZIONE SPECIFICA POST MIX --- */
+function exportPostMixGridExcel(isEmpty) {
+  const cfg = getActiveCinemaPostMixConfig();
+  let html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="utf-8" />
+      <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; }
+        table { border-collapse: collapse; margin-bottom: 20px; }
+        .title-row { background-color: #2980B9; color: #FFFFFF; font-size: 14pt; font-weight: bold; padding: 8px; }
+        .block-title { background-color: #3498DB; color: #FFFFFF; font-size: 11pt; font-weight: bold; padding: 5px; }
+        th, td { border: 1px solid #CCCCCC; text-align: center; padding: 6px; font-size: 9pt; }
+        .header-cell { background-color: #AED6F1; font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <table>
+        <tr><td colspan="10" class="title-row">SCHEDA POST MIX — ${esc(cinemaName)} ${isEmpty ? '(TEMPLATE VUOTO)' : '(CONTEGGI)'}</td></tr>
+      </table>
+  `;
+
+  cfg.blocks.forEach(b => {
+    html += `<table><tr><td colspan="${b.columns}" class="block-title">${esc(b.name)}</td></tr>`;
+    for (let r = 0; r < b.rows; r++) {
+      html += `<tr>`;
+      for (let c = 0; c < b.columns; c++) {
+        let cellData = b.gridValues?.[r]?.[c];
+        let valStr = "";
+        if (!isEmpty && cellData && cellData.prodName) {
+          valStr = `${cellData.prodName}: ${cellData.weight} kg`;
+        }
+        html += `<td>${valStr}</td>`;
+      }
+      html += `</tr>`;
+    }
+    html += `</table><br/>`;
+  });
+  html += `</body></html>`;
+
+  downloadExcelBlob(html, `PostMix_${cinemaName}_${isEmpty ? 'Template' : 'Report'}.xls`);
+}
+
+/* --- ESPORTAZIONE SPECIFICA DISTRIBUTORI --- */
+function exportDistributorsExcel(isEmpty) {
+  const cfg = getActiveCinemaDistributorConfig();
+  let html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="utf-8" />
+      <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; }
+        table { border-collapse: collapse; margin-bottom: 25px; width: 100%; }
+        .title-row { background-color: #8E44AD; color: #FFFFFF; font-size: 14pt; font-weight: bold; padding: 8px; }
+        .dist-header { background-color: #9B59B6; color: #FFFFFF; font-weight: bold; font-size: 11pt; }
+        th { background-color: #D2B4DE; border: 1px solid #BB8FCE; padding: 5px; font-size: 9pt; }
+        td { border: 1px solid #D5D8DC; text-align: center; padding: 5px; font-size: 9pt; }
+      </style>
+    </head>
+    <body>
+      <table>
+        <tr><td colspan="10" class="title-row">SCHEDA DISTRIBUTORI AUTOMATICI — ${esc(cinemaName)} ${isEmpty ? '(TEMPLATE VUOTO)' : '(CONTEGGI)'}</td></tr>
+      </table>
+  `;
+
+  cfg.distributors.forEach(d => {
+    html += `
+      <table>
+        <tr><td colspan="10" class="dist-header">${esc(d.name)} — Data: ${d.date || ''} — Fondo Resti: €${d.fondoResti || 0}</td></tr>
+        <tr>
+          <th>Prodotto</th><th>Stock Iniziale</th><th>Ins 1</th><th>Ins 2</th><th>Ins 3</th><th>Ins 4</th><th>Ins 5</th><th>Conta Finale</th><th>Prezzo Vendita</th>
+        </tr>
+    `;
+    d.rows.forEach(r => {
+      if (r.product || isEmpty) {
+        html += `
+          <tr>
+            <td style="text-align:left; font-weight:bold;">${esc(r.product)}</td>
+            <td>${isEmpty ? '' : r.stockIniziale}</td>
+            ${Array(5).fill(0).map((_, i) => `<td>${isEmpty ? '' : (r.ins?.[i] || '')}</td>`).join('')}
+            <td style="font-weight:bold; background:#F5EEF8;">${isEmpty ? '' : r.contaFinale}</td>
+            <td>${isEmpty ? '' : (r.prezzoVendita ? '€ ' + r.prezzoVendita : '')}</td>
+          </tr>
+        `;
+      }
+    });
+    html += `</table><br/>`;
+  });
+
+  html += `</body></html>`;
+  downloadExcelBlob(html, `Distributori_${cinemaName}_${isEmpty ? 'Template' : 'Report'}.xls`);
+}
+
+function downloadExcelBlob(htmlContent, fileName) {
+  const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* --- ESPORTAZIONE INVENTARIO REALE COMPLETO CON CONTEGGI ( MAGAZZINO CLASSICO ) --- */
 function exportCurrentInventoryToExcel() {
   if (!rows || rows.length === 0) {
     alert("Nessun dato prodotto caricato da esportare!");
@@ -264,12 +440,6 @@ function exportCurrentInventoryToExcel() {
   let activeMagName = cinemaName;
   if (currentTab === 'tot') {
     activeMagName = `${cinemaName} - RIEPILOGO TOTALE`;
-  } else if (currentTab === 'candy') {
-    activeMagName = `${cinemaName} - CARAMELLE`;
-  } else if (currentTab === 'postmix') {
-    activeMagName = `${cinemaName} - POST MIX`;
-  } else if (currentTab === 'distributors') {
-    activeMagName = `${cinemaName} - DISTRIBUTORI`;
   } else if (typeof currentTab === 'number' && warehouses[currentTab]) {
     activeMagName = `${cinemaName} - ${warehouses[currentTab]}`;
   }
@@ -397,20 +567,10 @@ function exportCurrentInventoryToExcel() {
   });
 
   html += `</table></body></html>`;
-
-  const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const safeFileName = activeMagName.replace(/[^a-zA-Z0-9-_]/g, "_");
-  a.href = url;
-  a.download = `Report_Inventario_${safeFileName}.xls`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadExcelBlob(html, `Report_Inventario_${activeMagName.replace(/[^a-zA-Z0-9-_]/g, "_")}.xls`);
 }
 
-/* --- ESPORTAZIONE TEMPLATE CONTEGGIO VUOTO IN EXCEL --- */
+/* --- ESPORTAZIONE TEMPLATE CONTEGGIO VUOTO IN EXCEL ( MAGAZZINO CLASSICO ) --- */
 function exportEmptyTemplateToExcel() {
   if (!rows || rows.length === 0) {
     alert("Nessun prodotto caricato!");
@@ -479,17 +639,7 @@ function exportEmptyTemplateToExcel() {
   });
 
   html += `</table></body></html>`;
-
-  const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const safeFileName = activeMagName.replace(/[^a-zA-Z0-9-_]/g, "_");
-  a.href = url;
-  a.download = `Template_Conteggio_${safeFileName}.xls`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadExcelBlob(html, `Template_Conteggio_${activeMagName.replace(/[^a-zA-Z0-9-_]/g, "_")}.xls`);
 }
 
 function toggleFilesSection() {
