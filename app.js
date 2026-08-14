@@ -1992,7 +1992,6 @@ function render() {
   data.forEach((r) => {
     let boxVal = 0, sleeveVal = 0, sfusoVal = 0;
     
-    // Calcolo dei totali sommando tutte le righe di conteggio inserite
     if (!isTotTab && typeof currentTab === 'number') {
       const c = getCount(currentTab, r.code);
       boxVal = sumArr(c.box);
@@ -2008,14 +2007,12 @@ function render() {
     }
 
     let kitPart = getKitContributionDetail(r.name, r.code);
-    // Moltiplicazione corretta per taglia box e sleeve + sfuso
     let baseRilevato = (boxVal * (r.boxSize || 0)) + (sleeveVal * (r.sleeveSize || 0)) + sfusoVal;
     
     let effettivo = getGlobalRilevato(r.code, r);
     let diff = effettivo - (r.atteso || 0);
     let diffVal = diff * (r.standardCost || 0);
 
-    // Generazione dinamica degli input multipli con il tasto + e × per rimuovere
     let boxHtml = '', sleeveHtml = '', sfusoHtml = '';
 
     if (isTotTab) {
@@ -2028,39 +2025,26 @@ function render() {
       if (!c.sleeve || c.sleeve.length === 0) c.sleeve = [0];
       if (!c.sfuso || c.sfuso.length === 0) c.sfuso = [0];
 
-      // BOX Inputs
-      boxHtml = c.box.map((val, idx) => `
-        <div style="display:flex; align-items:center; justify-content:center; gap:2px; margin-bottom:2px;">
-          <input type="number" value="${val}" style="width:50px; text-align:center;" oninput="updateCount(${currentTab}, '${r.code}', 'box', ${idx}, this.value)">
-          ${c.box.length > 1 ? `<button type="button" onclick="removeCountRow(${currentTab}, '${r.code}', 'box', ${idx})" style="background:transparent; border:none; color:red; cursor:pointer; font-weight:bold; font-size:0.8rem;" title="Rimuovi">×</button>` : ''}
-        </div>
-      `).join('') + `
-        <button type="button" onclick="addCountRow(${currentTab}, '${r.code}', 'box')" style="background:#28a745; color:white; border:none; border-radius:3px; padding:1px 6px; cursor:pointer; font-size:0.7rem; margin-top:2px;" title="Aggiungi riga">+</button>
-      `;
+      // Funzione interna per generare la colonna con input multipli, pulsante + e pulsante × di rimozione
+      const buildCellInputs = (type, arr) => {
+        return arr.map((val, idx) => `
+          <div style="display:flex; align-items:center; justify-content:center; gap:3px; margin-bottom:3px;">
+            <input type="number" value="${val}" style="width:55px; text-align:center; padding:2px;" 
+                   oninput="modifyCountValue(${currentTab}, '${r.code}', '${type}', ${idx}, this.value)">
+            ${arr.length > 1 ? `<button type="button" onclick="removeCountBox(${currentTab}, '${r.code}', '${type}', ${idx})" style="background:#e74c3c; color:white; border:none; border-radius:3px; width:20px; height:20px; cursor:pointer; font-weight:bold; font-size:0.75rem; display:flex; align-items:center; justify-content:center;" title="Rimuovi casella">×</button>` : ''}
+          </div>
+        `).join('') + `
+          <button type="button" onclick="addCountBox(${currentTab}, '${r.code}', '${type}')" style="background:#27ae60; color:white; border:none; border-radius:3px; padding:2px 8px; cursor:pointer; font-size:0.75rem; margin-top:2px; font-weight:bold; display:block; width:100%;" title="Aggiungi casella">+</button>
+        `;
+      };
 
-      // SLEEVE Inputs
-      sleeveHtml = c.sleeve.map((val, idx) => `
-        <div style="display:flex; align-items:center; justify-content:center; gap:2px; margin-bottom:2px;">
-          <input type="number" value="${val}" style="width:50px; text-align:center;" oninput="updateCount(${currentTab}, '${r.code}', 'sleeve', ${idx}, this.value)">
-          ${c.sleeve.length > 1 ? `<button type="button" onclick="removeCountRow(${currentTab}, '${r.code}', 'sleeve', ${idx})" style="background:transparent; border:none; color:red; cursor:pointer; font-weight:bold; font-size:0.8rem;" title="Rimuovi">×</button>` : ''}
-        </div>
-      `).join('') + `
-        <button type="button" onclick="addCountRow(${currentTab}, '${r.code}', 'sleeve')" style="background:#28a745; color:white; border:none; border-radius:3px; padding:1px 6px; cursor:pointer; font-size:0.7rem; margin-top:2px;" title="Aggiungi riga">+</button>
-      `;
-
-      // SFUSO Inputs
-      sfusoHtml = c.sfuso.map((val, idx) => `
-        <div style="display:flex; align-items:center; justify-content:center; gap:2px; margin-bottom:2px;">
-          <input type="number" value="${val}" style="width:50px; text-align:center;" oninput="updateCount(${currentTab}, '${r.code}', 'sfuso', ${idx}, this.value)">
-          ${c.sfuso.length > 1 ? `<button type="button" onclick="removeCountRow(${currentTab}, '${r.code}', 'sfuso', ${idx})" style="background:transparent; border:none; color:red; cursor:pointer; font-weight:bold; font-size:0.8rem;" title="Rimuovi">×</button>` : ''}
-        </div>
-      `).join('') + `
-        <button type="button" onclick="addCountRow(${currentTab}, '${r.code}', 'sfuso')" style="background:#28a745; color:white; border:none; border-radius:3px; padding:1px 6px; cursor:pointer; font-size:0.7rem; margin-top:2px;" title="Aggiungi riga">+</button>
-      `;
+      boxHtml = buildCellInputs('box', c.box);
+      sleeveHtml = buildCellInputs('sleeve', c.sleeve);
+      sfusoHtml = buildCellInputs('sfuso', c.sfuso);
     }
 
     html += `
-      <tr>
+      <tr id="row-${r.code}">
         <td><b>${esc(r.name)}</b><br><small style="color:#666">${esc(r.code)}</small></td>
         <td>${esc(r.uom)}</td>
         <td>${fmt(r.iniziale)}</td>
@@ -2072,18 +2056,90 @@ function render() {
         <td class="grp-sleeve">${sleeveHtml}</td>
         <td class="grp-sfuso">${sfusoHtml}</td>
         <td><b>${fmt(r.atteso)}</b></td>
-        <td>${fmt(baseRilevato)}</td>
+        <td class="cell-base-rilevato">${fmt(baseRilevato)}</td>
         <td>${fmt(kitPart)}</td>
-        <td><b>${fmt(effettivo)}</b></td>
-        <td style="color: ${diff < 0 ? 'red' : 'green'}"><b>${fmt(diff)}</b></td>
+        <td class="cell-effettivo"><b>${fmt(effettivo)}</b></td>
+        <td class="cell-diff" style="color: ${diff < 0 ? 'red' : 'green'}"><b>${fmt(diff)}</b></td>
         <td>€ ${fmtMoney(r.standardCost)}</td>
-        <td style="color: ${diffVal < 0 ? 'red' : 'green'}"><b>€ ${fmtMoney(diffVal)}</b></td>
+        <td class="cell-diffval" style="color: ${diffVal < 0 ? 'red' : 'green'}"><b>€ ${fmtMoney(diffVal)}</b></td>
       </tr>
     `;
   });
   
   tbody.innerHTML = html;
-  recalcKPIs();
+  if (typeof recalcKPIs === 'function') recalcKPIs();
+}
+
+// Funzioni di gestione in tempo reale senza perdita di focus
+function modifyCountValue(widx, code, type, idx, val) {
+  if (typeof updateCount === 'function') {
+    updateCount(widx, code, type, idx, val);
+  } else {
+    const c = getCount(widx, code);
+    if (c && c[type]) c[type][idx] = parseFloat(val) || 0;
+  }
+  updateRowLiveCalculations(code);
+}
+
+function addCountBox(widx, code, type) {
+  const c = getCount(widx, code);
+  if (!c[type]) c[type] = [];
+  c[type].push(0);
+  if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
+  else if (typeof save === 'function') save();
+  render();
+}
+
+function removeCountBox(widx, code, type, idx) {
+  const c = getCount(widx, code);
+  if (c && c[type] && c[type].length > 1) {
+    c[type].splice(idx, 1);
+    if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
+    else if (typeof save === 'function') save();
+    render();
+  }
+}
+
+function updateRowLiveCalculations(code) {
+  const r = rows.find(x => x.code === code);
+  if (!r) return;
+  
+  const isTotTab = (currentTab === 'summary' || currentTab === 'tot');
+  let boxVal = 0, sleeveVal = 0, sfusoVal = 0;
+  
+  if (!isTotTab && typeof currentTab === 'number') {
+    const c = getCount(currentTab, r.code);
+    boxVal = sumArr(c.box);
+    sleeveVal = sumArr(c.sleeve);
+    sfusoVal = sumArr(c.sfuso);
+  }
+  
+  let baseRilevato = (boxVal * (r.boxSize || 0)) + (sleeveVal * (r.sleeveSize || 0)) + sfusoVal;
+  let effettivo = getGlobalRilevato(r.code, r);
+  let diff = effettivo - (r.atteso || 0);
+  let diffVal = diff * (r.standardCost || 0);
+  
+  const rowEl = document.getElementById(`row-${r.code}`);
+  if (rowEl) {
+    const baseEl = rowEl.querySelector('.cell-base-rilevato');
+    const effEl = rowEl.querySelector('.cell-effettivo');
+    const diffEl = rowEl.querySelector('.cell-diff');
+    const diffValEl = rowEl.querySelector('.cell-diffval');
+    
+    if (baseEl) baseEl.textContent = fmt(baseRilevato);
+    if (effEl) effEl.innerHTML = `<b>${fmt(effettivo)}</b>`;
+    if (diffEl) {
+      diffEl.innerHTML = `<b>${fmt(diff)}</b>`;
+      diffEl.style.color = diff < 0 ? 'red' : 'green';
+    }
+    if (diffValEl) {
+      diffValEl.innerHTML = `<b>€ ${fmtMoney(diffVal)}</b>`;
+      diffValEl.style.color = diffVal < 0 ? 'red' : 'green';
+    }
+  }
+  
+  if (typeof recalcKPIs === 'function') recalcKPIs();
+  if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
 }
 
 // Funzioni di supporto per aggiungere o rimuovere righe di conteggio con il tasto +
