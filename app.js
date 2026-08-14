@@ -1296,7 +1296,7 @@ function exportCurrentInventoryToExcel() {
     return;
   }
   let activeMagName = cinemaName;
-  if (currentTab === 'tot') {
+  if (currentTab === 'summary') {
     activeMagName = `${cinemaName} - RIEPILOGO TOTALE`;
   } else if (typeof currentTab === 'number' && warehouses[currentTab]) {
     activeMagName = `${cinemaName} - ${warehouses[currentTab]}`;
@@ -1375,7 +1375,7 @@ function exportCurrentInventoryToExcel() {
   `;
   rows.forEach((r, idx) => {
     let totBoxLocal = 0, totSleeveLocal = 0, totSfusoLocal = 0;
-    if (currentTab === 'tot') {
+    if (currentTab === 'summary') {
       warehouses.forEach((_, wIdx) => {
         const cWh = getCount(wIdx, r.code);
         totBoxLocal += sumArr(cWh.box);
@@ -1951,7 +1951,7 @@ function render() {
   const q = $("search") ? norm($("search").value) : "";
   const data = rows.filter(x => norm(x.name).includes(q) || norm(x.code).includes(q));
   if ($("count")) $("count").textContent = `${data.length} prodotti`;
-  const isTotTab = (currentTab === 'summary' || currentTab === 'tot');
+  const isTotTab = (currentTab === 'summary' || currentTab === 'summary');
   
   if ($("thead")) {
     $("thead").innerHTML = `
@@ -2122,7 +2122,7 @@ function updateRowLiveCalculations(code) {
   const r = rows.find(x => x.code === code);
   if (!r) return;
   
-  const isTotTab = (currentTab === 'summary' || currentTab === 'tot');
+  const isTotTab = (currentTab === 'summary' || currentTab === 'summary');
   let boxVal = 0, sleeveVal = 0, sfusoVal = 0;
   
   if (!isTotTab && typeof currentTab === 'number') {
