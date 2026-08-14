@@ -1519,8 +1519,8 @@ function resetCounts() {
   }
 
   // Inventario standard
-  countsData = {};
-  localStorage.removeItem("inventory_counts");
+ countsData = {};
+localStorage.removeItem("inventory_counts");
 
   // Caramelle
   delete candyGridConfigs[cinemaName];
