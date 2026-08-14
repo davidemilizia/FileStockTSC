@@ -2045,9 +2045,15 @@ justify-content:start;
 align-items:start;
 ">${itemsStr}${addBtn}</div>`;
 };
-      boxHtml = buildCellInputs('box', c.box);
-      sleeveHtml = buildCellInputs('sleeve', c.sleeve);
-      sfusoHtml = buildCellInputs('sfuso', c.sfuso);
+      boxHtml = (r.boxSize && r.boxSize > 0)
+  ? buildCellInputs('box', c.box)
+  : '<span style="color:#999;">-</span>';
+
+sleeveHtml = (r.sleeveSize && r.sleeveSize > 0)
+  ? buildCellInputs('sleeve', c.sleeve)
+  : '<span style="color:#999;">-</span>';
+
+sfusoHtml = buildCellInputs('sfuso', c.sfuso);
     }
 
     html += `
