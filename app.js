@@ -2064,9 +2064,15 @@ sfusoHtml = buildCellInputs('sfuso', c.sfuso);
         <td>${fmt(r.danni)}</td>
         <td>${fmt(r.venduto)}</td>
         <td class="grp-box">${r.boxSize || '-'}</td>
-        <td class="grp-box">${boxHtml}</td>
+        <td class="grp-box"
+        style="${(!r.boxSize || r.boxSize <= 0) ? 'background:#e9ecef;color:#6c757d;text-align:center;font-weight:bold;' : ''}">
+        ${boxHtml}
+        </td>
         <td class="grp-sleeve">${r.sleeveSize || '-'}</td>
-        <td class="grp-sleeve">${sleeveHtml}</td>
+        <td class="grp-sleeve"
+        style="${(!r.sleeveSize || r.sleeveSize <= 0) ? 'background:#e9ecef;color:#6c757d;text-align:center;font-weight:bold;' : ''}">
+        ${sleeveHtml}
+        </td>
         <td class="grp-sfuso">${sfusoHtml}</td>
         <td><b>${fmt(r.atteso)}</b></td>
         <td class="cell-base-rilevato">${fmt(baseRilevato)}</td>
