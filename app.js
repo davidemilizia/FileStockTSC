@@ -1514,11 +1514,40 @@ function saveCountsToStorage() {
 }
 
 function resetCounts() {
-  if (confirm("Sei sicuro di voler azzerare tutti i conteggi inseriti per tutti i magazzini?")) {
-    countsData = {};
-    saveCountsToStorage();
-    render();
+  if (!confirm("Sei sicuro di voler azzerare tutti i conteggi inseriti?")) {
+    return;
   }
+
+  // Inventario standard
+  countsData = {};
+  localStorage.removeItem("inventory_counts");
+
+  // Caramelle
+  delete candyGridConfigs[cinemaName];
+  localStorage.setItem(
+    "candy_grid_configs",
+    JSON.stringify(candyGridConfigs)
+  );
+
+  // Post Mix
+  delete postMixGridConfigs[cinemaName];
+  localStorage.setItem(
+    "postmix_grid_configs",
+    JSON.stringify(postMixGridConfigs)
+  );
+
+  // Distributori
+  delete distributorGridConfigs[cinemaName];
+  localStorage.setItem(
+    "distributor_grid_configs",
+    JSON.stringify(distributorGridConfigs)
+  );
+
+  render();
+  recalcKPIs();
+
+  alert("Conteggi azzerati con successo.");
+}
 }
 
 function handleCinemaSelectChange() {
