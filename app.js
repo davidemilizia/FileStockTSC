@@ -1992,11 +1992,12 @@ function render() {
   data.forEach((r) => {
     let boxVal = 0, sleeveVal = 0, sfusoVal = 0;
     
+    // Calcolo dei totali sommando tutte le righe di conteggio inserite
     if (!isTotTab && typeof currentTab === 'number') {
       const c = getCount(currentTab, r.code);
-      boxVal = c.box[0] || 0;
-      sleeveVal = c.sleeve[0] || 0;
-      sfusoVal = c.sfuso[0] || 0;
+      boxVal = sumArr(c.box);
+      sleeveVal = sumArr(c.sleeve);
+      sfusoVal = sumArr(c.sfuso);
     } else if (isTotTab) {
       warehouses.forEach((_, widx) => {
         const cwh = getCount(widx, r.code);
@@ -2006,16 +2007,57 @@ function render() {
       });
     }
 
-    // Corretto il recupero delle taglie (fallback su size globale o proprietà dell'oggetto)
-    const bSize = r.boxSize || r.box || 1;
-    const sSize = r.sleeveSize || r.sleeve || 1;
-
     let kitPart = getKitContributionDetail(r.name, r.code);
-    let baseRilevato = (boxVal * bSize) + (sleeveVal * sSize) + sfusoVal;
+    // Moltiplicazione corretta per taglia box e sleeve + sfuso
+    let baseRilevato = (boxVal * (r.boxSize || 0)) + (sleeveVal * (r.sleeveSize || 0)) + sfusoVal;
     
     let effettivo = getGlobalRilevato(r.code, r);
     let diff = effettivo - (r.atteso || 0);
     let diffVal = diff * (r.standardCost || 0);
+
+    // Generazione dinamica degli input multipli con il tasto + e × per rimuovere
+    let boxHtml = '', sleeveHtml = '', sfusoHtml = '';
+
+    if (isTotTab) {
+      boxHtml = fmt(boxVal);
+      sleeveHtml = fmt(sleeveVal);
+      sfusoHtml = fmt(sfusoVal);
+    } else {
+      const c = getCount(currentTab, r.code);
+      if (!c.box || c.box.length === 0) c.box = [0];
+      if (!c.sleeve || c.sleeve.length === 0) c.sleeve = [0];
+      if (!c.sfuso || c.sfuso.length === 0) c.sfuso = [0];
+
+      // BOX Inputs
+      boxHtml = c.box.map((val, idx) => `
+        <div style="display:flex; align-items:center; justify-content:center; gap:2px; margin-bottom:2px;">
+          <input type="number" value="${val}" style="width:50px; text-align:center;" oninput="updateCount(${currentTab}, '${r.code}', 'box', ${idx}, this.value)">
+          ${c.box.length > 1 ? `<button type="button" onclick="removeCountRow(${currentTab}, '${r.code}', 'box', ${idx})" style="background:transparent; border:none; color:red; cursor:pointer; font-weight:bold; font-size:0.8rem;" title="Rimuovi">×</button>` : ''}
+        </div>
+      `).join('') + `
+        <button type="button" onclick="addCountRow(${currentTab}, '${r.code}', 'box')" style="background:#28a745; color:white; border:none; border-radius:3px; padding:1px 6px; cursor:pointer; font-size:0.7rem; margin-top:2px;" title="Aggiungi riga">+</button>
+      `;
+
+      // SLEEVE Inputs
+      sleeveHtml = c.sleeve.map((val, idx) => `
+        <div style="display:flex; align-items:center; justify-content:center; gap:2px; margin-bottom:2px;">
+          <input type="number" value="${val}" style="width:50px; text-align:center;" oninput="updateCount(${currentTab}, '${r.code}', 'sleeve', ${idx}, this.value)">
+          ${c.sleeve.length > 1 ? `<button type="button" onclick="removeCountRow(${currentTab}, '${r.code}', 'sleeve', ${idx})" style="background:transparent; border:none; color:red; cursor:pointer; font-weight:bold; font-size:0.8rem;" title="Rimuovi">×</button>` : ''}
+        </div>
+      `).join('') + `
+        <button type="button" onclick="addCountRow(${currentTab}, '${r.code}', 'sleeve')" style="background:#28a745; color:white; border:none; border-radius:3px; padding:1px 6px; cursor:pointer; font-size:0.7rem; margin-top:2px;" title="Aggiungi riga">+</button>
+      `;
+
+      // SFUSO Inputs
+      sfusoHtml = c.sfuso.map((val, idx) => `
+        <div style="display:flex; align-items:center; justify-content:center; gap:2px; margin-bottom:2px;">
+          <input type="number" value="${val}" style="width:50px; text-align:center;" oninput="updateCount(${currentTab}, '${r.code}', 'sfuso', ${idx}, this.value)">
+          ${c.sfuso.length > 1 ? `<button type="button" onclick="removeCountRow(${currentTab}, '${r.code}', 'sfuso', ${idx})" style="background:transparent; border:none; color:red; cursor:pointer; font-weight:bold; font-size:0.8rem;" title="Rimuovi">×</button>` : ''}
+        </div>
+      `).join('') + `
+        <button type="button" onclick="addCountRow(${currentTab}, '${r.code}', 'sfuso')" style="background:#28a745; color:white; border:none; border-radius:3px; padding:1px 6px; cursor:pointer; font-size:0.7rem; margin-top:2px;" title="Aggiungi riga">+</button>
+      `;
+    }
 
     html += `
       <tr>
@@ -2025,16 +2067,10 @@ function render() {
         <td>${fmt(r.danni)}</td>
         <td>${fmt(r.venduto)}</td>
         <td class="grp-box">${r.boxSize || '-'}</td>
-        <td class="grp-box">
-          ${isTotTab ? fmt(boxVal) : `<input type="number" value="${boxVal}" style="width:60px; text-align:center;" oninput="updateCount(${currentTab}, '${r.code}', 'box', 0, this.value)">`}
-        </td>
+        <td class="grp-box">${boxHtml}</td>
         <td class="grp-sleeve">${r.sleeveSize || '-'}</td>
-        <td class="grp-sleeve">
-          ${isTotTab ? fmt(sleeveVal) : `<input type="number" value="${sleeveVal}" style="width:60px; text-align:center;" oninput="updateCount(${currentTab}, '${r.code}', 'sleeve', 0, this.value)">`}
-        </td>
-        <td class="grp-sfuso">
-          ${isTotTab ? fmt(sfusoVal) : `<input type="number" value="${sfusoVal}" style="width:60px; text-align:center;" oninput="updateCount(${currentTab}, '${r.code}', 'sfuso', 0, this.value)">`}
-        </td>
+        <td class="grp-sleeve">${sleeveHtml}</td>
+        <td class="grp-sfuso">${sfusoHtml}</td>
         <td><b>${fmt(r.atteso)}</b></td>
         <td>${fmt(baseRilevato)}</td>
         <td>${fmt(kitPart)}</td>
@@ -2047,7 +2083,27 @@ function render() {
   });
   
   tbody.innerHTML = html;
-  if (typeof recalcKPIs === 'function') recalcKPIs();
+  recalcKPIs();
+}
+
+// Funzioni di supporto per aggiungere o rimuovere righe di conteggio con il tasto +
+function addCountRow(widx, code, type) {
+  const c = getCount(widx, code);
+  if (!c[type]) c[type] = [];
+  c[type].push(0);
+  if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
+  else if (typeof save === 'function') save();
+  render();
+}
+
+function removeCountRow(widx, code, type, idx) {
+  const c = getCount(widx, code);
+  if (c[type] && c[type].length > 1) {
+    c[type].splice(idx, 1);
+    if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
+    else if (typeof save === 'function') save();
+    render();
+  }
 }
 function updateCount(whIdx, code, type, fieldIdx, val) {
   const c = getCount(whIdx, code);
