@@ -2187,5 +2187,43 @@ function updateCount(whIdx, code, type, fieldIdx, val) {
 }
 
 function recalcKPIs() {
-  // Funzione di supporto per ricalcoli KPI se presenti nella UI
+  if (!rows || rows.length === 0) return;
+
+  let totaleAtteso = 0;
+  let totaleRilevato = 0;
+  let totaleDiffValore = 0;
+
+  rows.forEach(r => {
+    const atteso = n(r.atteso);
+    const rilevato = getGlobalRilevato(r.code, r);
+
+    totaleAtteso += atteso;
+    totaleRilevato += rilevato;
+    totaleDiffValore += (rilevato - atteso) * n(r.standardCost);
+  });
+
+  const diffPezzi = totaleRilevato - totaleAtteso;
+
+  const elAtteso = $("kpiAtteso");
+  const elRilevato = $("kpiRilevato");
+  const elDiffPezzi = $("kpiDiffPezzi");
+  const elDiffValore = $("kpiDiffValore");
+
+  if (elAtteso) elAtteso.textContent = fmt(totaleAtteso);
+  if (elRilevato) elRilevato.textContent = fmt(totaleRilevato);
+  if (elDiffPezzi) elDiffPezzi.textContent = fmt(diffPezzi);
+  if (elDiffValore) elDiffValore.textContent = `€ ${fmtMoney(totaleDiffValore)}`;
+
+  const diffBox = $("kpiDiffBox");
+  const valBox = $("kpiValoreBox");
+
+  if (diffBox) {
+    diffBox.classList.remove("warning", "success");
+    diffBox.classList.add(diffPezzi === 0 ? "success" : "warning");
+  }
+
+  if (valBox) {
+    valBox.classList.remove("warning", "success");
+    valBox.classList.add(totaleDiffValore >= 0 ? "success" : "warning");
+  }
 }
