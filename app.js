@@ -2044,7 +2044,7 @@ gap:6px;
 justify-content:start;
 align-items:start;
 ">${itemsStr}${addBtn}</div>`;
-
+};
       boxHtml = buildCellInputs('box', c.box);
       sleeveHtml = buildCellInputs('sleeve', c.sleeve);
       sfusoHtml = buildCellInputs('sfuso', c.sfuso);
