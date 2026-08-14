@@ -1548,7 +1548,6 @@ localStorage.removeItem("inventory_counts");
 
   alert("Conteggi azzerati con successo.");
 }
-}
 
 function handleCinemaSelectChange() {
   const sel = $("cinemaSelect").value;
