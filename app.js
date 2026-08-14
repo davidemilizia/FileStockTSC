@@ -2025,17 +2025,19 @@ function render() {
       if (!c.sleeve || c.sleeve.length === 0) c.sleeve = [0];
       if (!c.sfuso || c.sfuso.length === 0) c.sfuso = [0];
 
-      // Funzione interna per generare la colonna con input multipli, pulsante + e pulsante × di rimozione
+      // Layout flex con wrap (circa 4 elementi per riga) e pulsanti minimali senza sfondi colorati
       const buildCellInputs = (type, arr) => {
-        return arr.map((val, idx) => `
-          <div style="display:flex; align-items:center; justify-content:center; gap:3px; margin-bottom:3px;">
-            <input type="number" value="${val}" style="width:55px; text-align:center; padding:2px;" 
+        let inputsStr = arr.map((val, idx) => `
+          <div style="display:inline-flex; align-items:center; gap:2px;">
+            <input type="number" value="${val}" style="width:48px; text-align:center; padding:2px;" 
                    oninput="modifyCountValue(${currentTab}, '${r.code}', '${type}', ${idx}, this.value)">
-            ${arr.length > 1 ? `<button type="button" onclick="removeCountBox(${currentTab}, '${r.code}', '${type}', ${idx})" style="background:#e74c3c; color:white; border:none; border-radius:3px; width:20px; height:20px; cursor:pointer; font-weight:bold; font-size:0.75rem; display:flex; align-items:center; justify-content:center;" title="Rimuovi casella">×</button>` : ''}
+            ${arr.length > 1 ? `<button type="button" onclick="removeCountBox(${currentTab}, '${r.code}', '${type}', ${idx})" style="background:transparent; border:none; color:#dc3545; cursor:pointer; font-weight:bold; font-size:0.85rem; padding:0 2px;" title="Rimuovi">×</button>` : ''}
           </div>
-        `).join('') + `
-          <button type="button" onclick="addCountBox(${currentTab}, '${r.code}', '${type}')" style="background:#27ae60; color:white; border:none; border-radius:3px; padding:2px 8px; cursor:pointer; font-size:0.75rem; margin-top:2px; font-weight:bold; display:block; width:100%;" title="Aggiungi casella">+</button>
-        `;
+        `).join('');
+
+        let addBtn = `<button type="button" onclick="addCountBox(${currentTab}, '${r.code}', '${type}')" style="background:transparent; border:1px solid #ced4da; color:#495057; border-radius:3px; padding:1px 6px; cursor:pointer; font-size:0.75rem;" title="Aggiungi">+</button>`;
+
+        return `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; max-width:215px;">${inputsStr}${addBtn}</div>`;
       };
 
       boxHtml = buildCellInputs('box', c.box);
