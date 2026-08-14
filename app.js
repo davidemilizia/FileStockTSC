@@ -2025,19 +2025,19 @@ function render() {
       if (!c.sleeve || c.sleeve.length === 0) c.sleeve = [0];
       if (!c.sfuso || c.sfuso.length === 0) c.sfuso = [0];
 
-      // Disposizione orizzontale (max-width forza il ritorno a capo alla 5ª casella) senza sfondi colorati
+      // Layout flex con larghezza fissa per forzare esattamente 4 elementi per riga in orizzontale
       const buildCellInputs = (type, arr) => {
-        let inputsStr = arr.map((val, idx) => `
-          <div style="display:inline-flex; align-items:center; gap:2px; margin-bottom:3px;">
-            <input type="number" value="${val}" style="width:48px; text-align:center; padding:2px;" 
+        let itemsStr = arr.map((val, idx) => `
+          <div style="display:inline-flex; align-items:center; gap:1px;">
+            <input type="number" value="${val}" style="width:45px; text-align:center; padding:2px;" 
                    oninput="modifyCountValue(${currentTab}, '${r.code}', '${type}', ${idx}, this.value)">
-            ${arr.length > 1 ? `<button type="button" onclick="removeCountBox(${currentTab}, '${r.code}', '${type}', ${idx})" style="background:transparent; border:none; color:#dc3545; cursor:pointer; font-weight:bold; font-size:0.9rem; padding:0 2px;" title="Rimuovi">×</button>` : ''}
+            ${arr.length > 1 ? `<button type="button" onclick="removeCountBox(${currentTab}, '${r.code}', '${type}', ${idx})" style="background:transparent; border:none; color:#dc3545; cursor:pointer; font-weight:bold; font-size:0.85rem; padding:0 1px;" title="Rimuovi">×</button>` : ''}
           </div>
         `).join('');
 
-        let addBtn = `<button type="button" onclick="addCountBox(${currentTab}, '${r.code}', '${type}')" style="background:transparent; border:1px solid #ced4da; color:#495057; border-radius:3px; padding:2px 8px; cursor:pointer; font-size:0.75rem; margin-bottom:3px;" title="Aggiungi">+</button>`;
+        let addBtn = `<button type="button" onclick="addCountBox(${currentTab}, '${r.code}', '${type}')" style="background:transparent; border:1px solid #ced4da; color:#495057; border-radius:3px; padding:2px 6px; cursor:pointer; font-size:0.75rem;" title="Aggiungi">+</button>`;
 
-        return `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; max-width:245px; margin:0 auto;">${inputsStr}${addBtn}</div>`;
+        return `<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; max-width:215px;">${itemsStr}${addBtn}</div>`;
       };
 
       boxHtml = buildCellInputs('box', c.box);
