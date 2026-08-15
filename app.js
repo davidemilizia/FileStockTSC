@@ -1547,7 +1547,18 @@ localStorage.removeItem("inventory_counts");
     "distributor_grid_configs",
     JSON.stringify(distributorGridConfigs)
   );
+function showHiddenProducts() {
 
+  hiddenProducts = [];
+
+  localStorage.setItem(
+    "hidden_products",
+    JSON.stringify(hiddenProducts)
+  );
+
+  render();
+
+}
   render();
   recalcKPIs();
 
