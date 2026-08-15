@@ -17,10 +17,8 @@ const DEFAULT_CINEMAS = [
   "TSC Sestu", "TSC Silea", "TSC Surbo", "TSC Terni", "TSC Torino",
   "TSC Torri di Quartesolo", "TSC Trieste", "TSC Vimercate"
 ];
-
 /* --- CONFIGURAZIONE DINAMICA BLOCCHI CARAMELLE --- */
 let candyGridConfigs = JSON.parse(localStorage.getItem("candy_grid_configs")) || {};
-
 function getActiveCinemaCandyConfig() {
   if (!candyGridConfigs[cinemaName]) {
     candyGridConfigs[cinemaName] = {
@@ -47,11 +45,9 @@ function getActiveCinemaCandyConfig() {
   if (!cfg.buste || !Array.isArray(cfg.buste)) cfg.buste = Array(10).fill().map(() => ({kg: 0, sleeve: 0}));
   return cfg;
 }
-
 function saveCandyConfig() {
   localStorage.setItem("candy_grid_configs", JSON.stringify(candyGridConfigs));
 }
-
 function getCandyTotalKg() {
   const cfg = getActiveCinemaCandyConfig();
   let total = 0;
@@ -77,7 +73,6 @@ function getCandyTotalKg() {
   }
   return total;
 }
-
 /* --- CONFIGURAZIONE DINAMICA POST MIX --- */
 let postMixGridConfigs = JSON.parse(localStorage.getItem("postmix_grid_configs")) || {};
 
@@ -103,7 +98,6 @@ function getActiveCinemaPostMixConfig() {
 function savePostMixConfig() {
   localStorage.setItem("postmix_grid_configs", JSON.stringify(postMixGridConfigs));
 }
-
 function getPostMixProductTotals() {
   const cfg = getActiveCinemaPostMixConfig();
   let totals = {}; 
@@ -131,7 +125,6 @@ function getPostMixProductTotals() {
 
 /* --- CONFIGURAZIONE DISTRIBUTORI --- */
 let distributorGridConfigs = JSON.parse(localStorage.getItem("distributor_grid_configs")) || {};
-
 function getActiveCinemaDistributorConfig() {
   if (!distributorGridConfigs[cinemaName]) {
     distributorGridConfigs[cinemaName] = {
@@ -171,9 +164,7 @@ function getDistributorsContaFinaleTotals() {
   }
   return totals;
 }
-
 const $ = id => document.getElementById(id);
-
 document.addEventListener("DOMContentLoaded", () => {
   loadSetupFromStorage();
   loadCountsFromStorage();
@@ -267,7 +258,6 @@ function renderCandyView() {
       </div>
     </div>
   `;
-
   const blocksContainerStyle = (cfg.orientation === 'horizontal')
     ? 'display: flex; flex-direction: row; gap: 20px; overflow-x: auto; width: 100%; align-items: flex-start; padding-bottom: 10px;'
     : 'display: flex; flex-direction: column; gap: 20px; width: 100%;';
@@ -278,7 +268,6 @@ function renderCandyView() {
     const blockBoxStyle = (cfg.orientation === 'horizontal')
       ? 'background:white; padding:15px; border-radius:8px; border:1px solid #ffe0b2; min-width:380px; flex:1;'
       : 'background:white; padding:15px; border-radius:8px; border:1px solid #ffe0b2; width:100%; box-sizing:border-box;';
-
     html += `<div style="${blockBoxStyle}">
               <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
                 <h5 style="color:#e67e22; margin:0;">${esc(b.name)}</h5>
@@ -336,9 +325,7 @@ function renderCandyView() {
     });
     html += `</div></div>`;
   });
-
   html += `</div>`;
-
   if (cfg.buste) {
     html += `
       <div style="margin-top:25px; background:white; padding:15px; border-radius:8px; border:1px solid #ffe0b2;">
@@ -368,7 +355,6 @@ function renderCandyView() {
   html += `</td></tr>`;
   container.innerHTML = html;
 }
-
 function updateCandyTareInput(idx, val) {
   const cfg = getActiveCinemaCandyConfig();
   if (!cfg.tares) cfg.tares = [0.37, 0.72, 0.50, 1.00];
@@ -376,7 +362,6 @@ function updateCandyTareInput(idx, val) {
   saveCandyConfig();
   updateCandyTotalUI();
 }
-
 function updateCandyBlocksCount(countVal) {
   const cfg = getActiveCinemaCandyConfig();
   let count = parseInt(countVal) || 2;
@@ -389,7 +374,6 @@ function updateCandyBlocksCount(countVal) {
   renderCandyView();
   recalcKPIs();
 }
-
 function updateCandyOrientation(orient) {
   const cfg = getActiveCinemaCandyConfig();
   if (!cfg) return;
@@ -397,7 +381,6 @@ function updateCandyOrientation(orient) {
   saveCandyConfig();
   renderCandyView();
 }
-
 function updateCandyBlockRows(bIdx, rowsVal) {
   const cfg = getActiveCinemaCandyConfig();
   if (cfg.blocks[bIdx]) {
@@ -407,7 +390,6 @@ function updateCandyBlockRows(bIdx, rowsVal) {
     recalcKPIs();
   }
 }
-
 function updateCandyBlockCols(bIdx, colsVal) {
   const cfg = getActiveCinemaCandyConfig();
   if (cfg.blocks[bIdx]) {
@@ -417,7 +399,6 @@ function updateCandyBlockCols(bIdx, colsVal) {
     recalcKPIs();
   }
 }
-
 function updateCandyCellWeight(bIdx, r, c, val) {
   const cfg = getActiveCinemaCandyConfig();
   if (!cfg.blocks[bIdx].gridValues) cfg.blocks[bIdx].gridValues = {};
@@ -428,7 +409,6 @@ function updateCandyCellWeight(bIdx, r, c, val) {
   saveCandyConfig();
   updateCandyTotalUI();
 }
-
 function updateCandyCellTara(bIdx, r, c, taraIdx) {
   const cfg = getActiveCinemaCandyConfig();
   if (!cfg.blocks[bIdx].gridValues) cfg.blocks[bIdx].gridValues = {};
@@ -439,7 +419,6 @@ function updateCandyCellTara(bIdx, r, c, taraIdx) {
   saveCandyConfig();
   updateCandyTotalUI();
 }
-
 function updateBustaData(bIdx, field, val) {
   const cfg = getActiveCinemaCandyConfig();
   if (!cfg.buste[bIdx]) cfg.buste[bIdx] = { kg: 0, sleeve: 0 };
@@ -447,7 +426,6 @@ function updateBustaData(bIdx, field, val) {
   saveCandyConfig();
   updateCandyTotalUI();
 }
-
 function updateCandyTotalUI() {
   const totalEl = document.getElementById("candyTotalKgDisplay");
   if (totalEl) {
@@ -455,7 +433,6 @@ function updateCandyTotalUI() {
   }
   recalcKPIs();
 }
-
 /* --- RENDER POST MIX --- */
 function renderPostMixView() {
   const container = $("tbody");
@@ -464,14 +441,10 @@ function renderPostMixView() {
   
   const cfg = getActiveCinemaPostMixConfig();
   if (!cfg.orientation) cfg.orientation = 'vertical';
-
   thead.innerHTML = `<tr><th colspan="10" style="background:#2980b9; color:white; font-size:1.1rem; padding:10px;">🥤 Post Mix e Sciroppi (${esc(cinemaName)})</th></tr>`;
-
   let html = `<tr><td colspan="10" style="padding:15px; background:#eaf2f8;">`;
-
   const totals = typeof getPostMixProductTotals === 'function' ? getPostMixProductTotals() : {};
   const productKeys = Object.keys(totals);
-
   html += `
     <div style="display:flex; flex-direction:column; gap:15px; margin-bottom:20px; background:white; padding:15px; border-radius:8px; border:1px solid #aed6f1;">
       <div>
@@ -486,11 +459,9 @@ function renderPostMixView() {
       html += `<li><b>${esc(p)}:</b> ${totals[p].toFixed(2)} Kg netti</li>`;
     }
   }
-
   html += `
         </ul>
       </div>
-
       <div style="display:flex; gap:20px; align-items:center; flex-wrap:wrap; border-top:1px solid #eee; padding-top:10px;">
         <div style="display:flex; align-items:center; gap:8px;">
           <label style="font-size:0.85rem; font-weight:bold; color:#666;">Numero Blocchi:</label>
@@ -508,18 +479,14 @@ function renderPostMixView() {
       </div>
     </div>
   `;
-
   const pmContainerStyle = (cfg.orientation === 'horizontal')
     ? 'display:flex; flex-direction:row; gap:15px; overflow-x:auto; padding-bottom:10px; width:100%; align-items:flex-start;'
     : 'display:flex; flex-direction:column; gap:15px; width:100%;';
-
   html += `<div style="${pmContainerStyle}">`;
-
   cfg.blocks.forEach((b, bIdx) => {
     const blockBoxStyle = (cfg.orientation === 'horizontal')
       ? 'background:white; padding:15px; border-radius:8px; border:1px solid #aed6f1; min-width:340px; flex:1;'
       : 'background:white; padding:15px; border-radius:8px; border:1px solid #aed6f1; width:100%; box-sizing:border-box;';
-
     html += `
       <div style="${blockBoxStyle}">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
@@ -540,10 +507,8 @@ function renderPostMixView() {
           </div>
         </div>
     `;
-
     let gridStyle = '';
     let cellOrder = [];
-
     if (cfg.orientation === 'horizontal') {
       gridStyle = `display: grid; grid-template-columns: repeat(${b.columns}, minmax(130px, 1fr)); gap: 8px; margin-top: 8px; overflow-x: auto; padding-bottom: 5px;`;
       for (let r = 0; r < b.rows; r++) {
@@ -561,9 +526,7 @@ function renderPostMixView() {
         }
       }
     }
-
     html += `<div style="${gridStyle}">`;
-
     cellOrder.forEach(({ r, c, num }) => {
       let cell = b.gridValues?.[r]?.[c] || { prodName: "", weight: "" };
       let badgeBg = cfg.orientation === 'vertical' ? '#2980b9' : '#7f8c8d';
