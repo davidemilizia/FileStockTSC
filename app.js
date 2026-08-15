@@ -2199,7 +2199,6 @@ function addCountRow(widx, code, type) {
   else if (typeof save === 'function') save();
   render();
 }
-
 function removeCountRow(widx, code, type, idx) {
   const c = getCount(widx, code);
   if (c[type] && c[type].length > 1) {
@@ -2215,42 +2214,6 @@ function updateCount(whIdx, code, type, fieldIdx, val) {
   saveCountsToStorage();
   syncDistributorsToGlobalStock();
   recalcKPIs();
-}
-function getInventoryViewConfig() {
-
-  if (!inventoryViewConfigs[cinemaName]) {
-
-    inventoryViewConfigs[cinemaName] = {
-      hiddenProducts: [],
-      customOrder: [],
-      sortMode: "custom"
-    };
-
-  }
-
-  return inventoryViewConfigs[cinemaName];
-}
-
-function saveInventoryViewConfig() {
-
-  localStorage.setItem(
-    "inventory_view_configs",
-    JSON.stringify(inventoryViewConfigs)
-  );
-
-}
-
-function openProductsManager() {
-
-  alert(
-`Funzione in preparazione.
-
-Versione 1:
-✅ Nascondi prodotti
-✅ Riordina prodotti
-✅ Ordinamento alfabetico`
-  );
-
 }
 function recalcKPIs() {
   if (!rows || rows.length === 0) return;
