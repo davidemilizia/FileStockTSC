@@ -1942,6 +1942,53 @@ for (let [dName, dVal] of Object.entries(distTotals)) {
 }
   return basePezzi + getKitContributionDetail(r.name, r.code);
 }
+function moveProduct(code, direction) {
+
+  const cfg = getInventoryViewConfig();
+
+  rows.forEach(r => {
+    if (!cfg.customOrder.includes(r.code)) {
+      cfg.customOrder.push(r.code);
+    }
+  });
+
+  const pos = cfg.customOrder.indexOf(code);
+
+  if (pos < 0) return;
+
+  const newPos = pos + direction;
+
+  if (
+    newPos < 0 ||
+    newPos >= cfg.customOrder.length
+  ) return;
+
+  [
+    cfg.customOrder[pos],
+    cfg.customOrder[newPos]
+  ] = [
+    cfg.customOrder[newPos],
+    cfg.customOrder[pos]
+  ];
+
+  saveInventoryViewConfig();
+  render();
+}
+
+function toggleProductVisibility(code) {
+
+  const cfg = getInventoryViewConfig();
+
+  const idx = cfg.hiddenProducts.indexOf(code);
+
+  if (idx >= 0)
+    cfg.hiddenProducts.splice(idx, 1);
+  else
+    cfg.hiddenProducts.push(code);
+
+  saveInventoryViewConfig();
+  render();
+}
 
 function toggleProductSort() {
 
