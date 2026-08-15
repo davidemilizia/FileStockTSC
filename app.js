@@ -1547,6 +1547,7 @@ localStorage.removeItem("inventory_counts");
     "distributor_grid_configs",
     JSON.stringify(distributorGridConfigs)
   );
+   }
 function showHiddenProducts() {
 
   hiddenProducts = [];
@@ -1558,11 +1559,6 @@ function showHiddenProducts() {
 
   render();
 
-}
-  render();
-  recalcKPIs();
-
-  alert("Conteggi azzerati con successo.");
 }
 
 function handleCinemaSelectChange() {
