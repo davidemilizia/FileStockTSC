@@ -7,6 +7,10 @@ let warehouses = ["Bar Principale", "Deposito Centrale", "Stand Popcorn"];
 let currentTab = 0; 
 let productSortDirection = "az";
 let countsData = {}; 
+let hiddenProducts =
+JSON.parse(
+  localStorage.getItem("hidden_products")
+) || [];
 const MAX_FIELDS = 10;
 const DEFAULT_CINEMAS = [
   "TSC Beinasco", "TSC Belpasso", "TSC Bologna", "TSC Casamassima", "TSC Catanzaro",
@@ -1976,6 +1980,27 @@ function toggleProductSort() {
     productSortDirection === "az"
       ? "za"
       : "az";
+  render();
+}
+function toggleProductVisibility(code) {
+
+  const idx =
+    hiddenProducts.indexOf(code);
+
+  if (idx >= 0) {
+
+    hiddenProducts.splice(idx, 1);
+
+  } else {
+
+    hiddenProducts.push(code);
+
+  }
+
+  localStorage.setItem(
+    "hidden_products",
+    JSON.stringify(hiddenProducts)
+  );
 
   render();
 
@@ -1990,6 +2015,11 @@ function render() {
   norm(x.name).includes(q) ||
   norm(x.code).includes(q)
 );
+
+data = data.filter(
+  p => !hiddenProducts.includes(p.code)
+);
+
 if (productSortDirection === "az") {
   data.sort((a,b) =>
     a.name.localeCompare(b.name)
@@ -2115,7 +2145,32 @@ sfusoHtml = buildCellInputs('sfuso', c.sfuso);
 
     html += `
       <tr id="row-${r.code}">
-        <td><b>${esc(r.name)}</b><br><small style="color:#666">${esc(r.code)}</small></td>
+<td>
+
+<button
+type="button"
+onclick="toggleProductVisibility('${r.code}')"
+title="Nascondi prodotto"
+style="
+margin-bottom:4px;
+font-size:11px;
+padding:2px 5px;
+"
+>
+👁
+</button>
+
+<br>
+
+<b>${esc(r.name)}</b>
+
+<br>
+
+<small style="color:#666">
+${esc(r.code)}
+</small>
+
+</td>
         <td>${esc(r.uom)}</td>
         <td>${fmt(r.iniziale)}</td>
         <td>${fmt(r.danni)}</td>
