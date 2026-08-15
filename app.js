@@ -2216,9 +2216,6 @@ function updateCount(whIdx, code, type, fieldIdx, val) {
   syncDistributorsToGlobalStock();
   recalcKPIs();
 }
-let inventoryViewConfigs =
-JSON.parse(localStorage.getItem("inventory_view_configs")) || {};
-
 function getInventoryViewConfig() {
 
   if (!inventoryViewConfigs[cinemaName]) {
