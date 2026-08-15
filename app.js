@@ -2013,7 +2013,12 @@ if (productSortDirection === "az") {
         <th colspan="7" style="background: #212529; color: white;">CONFRONTO GLOBALE (TUTTI I MAGAZZINI)</th>
       </tr>
       <tr style="position: sticky; top: 35px; z-index: 20; background: #343a40; color: white; font-size: 0.8rem;">
-        <th>Prodotto</th>
+        <th
+  style="cursor:pointer"
+  onclick="toggleProductSort()"
+>
+  Prodotto ↕
+</th>
         <th>U.M.</th>
         <th>Iniziale</th>
         <th>Danni</th>
