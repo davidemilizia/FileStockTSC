@@ -1970,15 +1970,35 @@ for (let [dName, dVal] of Object.entries(distTotals)) {
 }
   return basePezzi + getKitContributionDetail(r.name, r.code);
 }
+function toggleProductSort() {
 
+  productSortDirection =
+    productSortDirection === "az"
+      ? "za"
+      : "az";
+
+  render();
+
+}
 function render() {
   if (currentTab === 'setup') return;
   if (currentTab === 'candy') { renderCandyView(); return; }
   if (currentTab === 'postmix') { renderPostMixView(); return; }
-  if (currentTab === 'distributors') { renderDistributorsView(); return; }
-  
+  if (currentTab === 'distributors') { renderDistributorsView(); return; }  
   const q = $("search") ? norm($("search").value) : "";
-  const data = rows.filter(x => norm(x.name).includes(q) || norm(x.code).includes(q));
+  let data = rows.filter(x =>
+  norm(x.name).includes(q) ||
+  norm(x.code).includes(q)
+);
+if (productSortDirection === "az") {
+  data.sort((a,b) =>
+    a.name.localeCompare(b.name)
+  );
+} else {
+  data.sort((a,b) =>
+    b.name.localeCompare(a.name)
+  );
+}
   if ($("count")) $("count").textContent = `${data.length} prodotti`;
   const isTotTab = (currentTab === 'summary' || currentTab === 'summary');
   
