@@ -190,17 +190,38 @@
       <div id="tabsBar" class="tabs-bar"></div>
 
       <!-- BARRA DI RICERCA ED ESPORTAZIONE -->
-      <div class="toolbar card">
-        <input type="text" id="search" placeholder="🔍 Cerca codice o nome prodotto..." class="search-input">
-        <span id="count" class="count-badge">0 prodotti</span>
-        <button id="resetBtn" class="btn btn-warning" onclick="resetCounts()">
-          🗑️ Azzera Conteggi
-        </button>
-        <button id="exportBtn" class="btn btn-success" onclick="exportToExcel()">
-          📥 Esporta in Excel
-        </button>
-      </div>
+     <div class="toolbar card">
 
+  <input type="text"
+         id="search"
+         placeholder="🔍 Cerca codice o nome prodotto..."
+         class="search-input">
+
+  <span id="count" class="count-badge">
+    0 prodotti
+  </span>
+
+  <button
+    type="button"
+    class="btn btn-secondary"
+    onclick="showHiddenProducts()">
+    👀 Mostra Nascosti
+  </button>
+
+  <button id="resetBtn"
+          class="btn btn-warning"
+          onclick="resetCounts()">
+      🧹 Azzera Conteggi
+  </button>
+
+  <button id="exportBtn"
+          class="btn btn-success"
+          onclick="exportToExcel()">
+      📊 Esporta in Excel
+  </button>
+
+</div>
+      
       <!-- TABELLA DATI CON SCROLL VERTICALE E HEADER FISSO -->
       <div class="table-container card">
         <table>
