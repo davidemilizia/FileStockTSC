@@ -2023,11 +2023,13 @@ function render() {
   norm(x.name).includes(q) ||
   norm(x.code).includes(q)
 );
+if (!showHiddenMode) {
 
-data = data.filter(
-  p => !hiddenProducts.includes(p.code)
-);
+  data = data.filter(
+    p => !hiddenProducts.includes(p.code)
+  );
 
+}
 if (productSortDirection === "az") {
   data.sort((a,b) =>
     a.name.localeCompare(b.name)
