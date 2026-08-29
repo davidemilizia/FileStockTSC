@@ -1551,17 +1551,22 @@ localStorage.removeItem("inventory_counts");
    }
 function showHiddenProducts() {
 
-  hiddenProducts = [];
+  showHiddenMode = !showHiddenMode;
 
-  localStorage.setItem(
-    "hidden_products",
-    JSON.stringify(hiddenProducts)
-  );
+  const btn =
+    document.getElementById("showHiddenBtn");
+
+  if (btn) {
+
+    btn.innerHTML = showHiddenMode
+      ? "🙈 Nascondi Nascosti"
+      : "👀 Mostra Nascosti";
+
+  }
 
   render();
 
 }
-
 function handleCinemaSelectChange() {
   const sel = $("cinemaSelect").value;
   if ($("customCinemaDiv")) $("customCinemaDiv").style.display = (sel === "__CUSTOM__") ? "block" : "none";
