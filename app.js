@@ -11,6 +11,7 @@ let hiddenProducts =
 JSON.parse(
   localStorage.getItem("hidden_products")
 ) || [];
+let showHiddenMode = false;
 const MAX_FIELDS = 10;
 const DEFAULT_CINEMAS = [
   "TSC Beinasco", "TSC Belpasso", "TSC Bologna", "TSC Casamassima", "TSC Catanzaro",
