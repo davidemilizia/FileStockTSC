@@ -1666,13 +1666,23 @@ function renderTabs() {
   setupBtn.onclick = () => { currentTab = 'setup'; switchTab(); };
   bar.appendChild(setupBtn);
   
-  warehouses.forEach((w, idx) => {
-    const btn = document.createElement("button");
-    btn.className = `tab-btn ${currentTab === idx ? 'active' : ''}`;
-    btn.textContent = `📍 ${w.name || w.nome || ('Magazzino ' + (idx + 1))}`;
-    btn.onclick = () => { currentTab = idx; switchTab(); };
-    bar.appendChild(btn);
-  });
+ warehouses.forEach((w, idx) => {
+  const btn = document.createElement("button");
+  btn.className = `tab-btn ${currentTab === idx ? 'active' : ''}`;
+
+  btn.textContent = `📍 ${
+    typeof w === "string"
+      ? w
+      : (w.name || w.nome || `Magazzino ${idx + 1}`)
+  }`;
+
+  btn.onclick = () => {
+    currentTab = idx;
+    switchTab();
+  };
+
+  bar.appendChild(btn);
+});
   
   const candyBtn = document.createElement("button");
   candyBtn.className = `tab-btn ${currentTab === 'candy' ? 'active' : ''}`;
