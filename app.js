@@ -1576,8 +1576,53 @@ function showHiddenProducts() {
 
 }
 function handleCinemaSelectChange() {
+
   const sel = $("cinemaSelect").value;
-  if ($("customCinemaDiv")) $("customCinemaDiv").style.display = (sel === "__CUSTOM__") ? "block" : "none";
+
+  if ($("customCinemaDiv")) {
+    $("customCinemaDiv").style.display =
+      (sel === "__CUSTOM__")
+        ? "block"
+        : "none";
+  }
+
+  const allWarehouses =
+    JSON.parse(
+      localStorage.getItem("cinema_warehouses")
+    ) || {};
+
+  if (
+    sel !== "__CUSTOM__" &&
+    allWarehouses[sel]
+  ) {
+
+    warehouses = allWarehouses[sel];
+
+    const container = $("whList");
+    container.innerHTML = "";
+
+    warehouses.forEach(w => {
+
+      const div =
+        document.createElement("div");
+
+      div.className = "wh-item";
+      div.style.cssText =
+        "display:flex;gap:10px;margin-bottom:8px;";
+
+      div.innerHTML = `
+        <input class="wh-input-item"
+               value="${w}"
+               style="flex:1;padding:6px 10px;">
+        <button class="btn btn-danger"
+                onclick="this.parentElement.remove()">
+          Elimina
+        </button>
+      `;
+
+      container.appendChild(div);
+    });
+  }
 }
 
 function saveWarehousesSetup() {
