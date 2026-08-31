@@ -1590,8 +1590,17 @@ function saveWarehousesSetup() {
   });
   if (newWh.length === 0) { alert("Inserisci almeno un magazzino!"); return; }
   
-  warehouses = newWh;
-  localStorage.setItem("cinema_warehouses", JSON.stringify(warehouses));
+ warehouses = newWh;
+
+let allWarehouses =
+  JSON.parse(localStorage.getItem("cinema_warehouses")) || {};
+
+allWarehouses[cinemaName] = warehouses;
+
+localStorage.setItem(
+  "cinema_warehouses",
+  JSON.stringify(allWarehouses)
+);
   
   updateHeaderTitle();
   currentTab = 0;
