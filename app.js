@@ -1843,7 +1843,7 @@ function parseSize(m) {
     } else {
       const name = firstVal;
       const normName = norm(name);
-      if (!name || name === "#N/D" || normName.includes("PRODOTTO") || normName.includes("DESCRIZIONE") || normName.includes("BOX")) continue;
+      if (!name || name === "#N/D" || normName.includes("PRODOTTO") || normName.includes("DESCRIZIONE")) continue;
       const boxSize = n(r[1]);
       const sleeveSize = n(r[2]);
       let primaryCode = "";
