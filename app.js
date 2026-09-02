@@ -1701,7 +1701,19 @@ function renderTabs() {
   distBtn.innerHTML = `🍫 Distributori`;
   distBtn.onclick = () => { currentTab = 'distributors'; switchTab(); };
   bar.appendChild(distBtn);
-  
+  const shrinkBtn = document.createElement("button");
+
+shrinkBtn.className =
+  `tab-btn ${currentTab === 'shrinkage' ? 'active' : ''}`;
+
+shrinkBtn.innerHTML = `📉 SHRINKAGE`;
+
+shrinkBtn.onclick = () => {
+  currentTab = 'shrinkage';
+  switchTab();
+};
+
+bar.appendChild(shrinkBtn);
   const summaryBtn = document.createElement("button");
   summaryBtn.className = `tab-btn ${currentTab === 'summary' ? 'active' : ''}`;
   summaryBtn.innerHTML = `📊 RIEPILOGO TOTALE`;
