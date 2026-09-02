@@ -232,15 +232,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function updateNetSales(val) {
 
-  netSales = n(val);
+    netSales = n(val);
 
-  localStorage.setItem(
-    "net_sales_" + cinemaName,
-    netSales
-  );
+    localStorage.setItem(
+        "net_sales_" + cinemaName,
+        netSales
+    );
 
-  renderShrinkageView();
 }
+
 function renderShrinkageView() {
 
   const tbody = $("tbody");
