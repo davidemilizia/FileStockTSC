@@ -330,7 +330,7 @@ function renderShrinkageView() {
                 <input
                   type="number"
                   value="${netSales}"
-                  oninput="updateNetSales(this.value)"
+                  onchange="updateNetSales(this.value)"
                   style="
                     width:100%;
                     padding:6px">
