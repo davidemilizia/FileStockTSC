@@ -247,6 +247,153 @@ function updateNetSales(val) {
 
   renderShrinkageView();
 }
+function renderShrinkageView() {
+
+  const tbody = $("tbody");
+  const thead = $("thead");
+
+  if (!tbody || !thead) return;
+
+  let totaleDiffValore = 0;
+  let totaleDanni = 0;
+
+  rows.forEach(r => {
+
+    const atteso = n(r.atteso);
+
+    const rilevato =
+      getGlobalRilevato(r.code, r);
+
+    totaleDiffValore +=
+      (rilevato - atteso) *
+      n(r.standardCost);
+
+    totaleDanni +=
+      n(r.danni) *
+      n(r.standardCost);
+
+  });
+
+  const shrinkageValore =
+    totaleDiffValore + totaleDanni;
+
+  const diffPerc =
+    netSales > 0
+      ? (totaleDiffValore / netSales) * 100
+      : 0;
+
+  const danniPerc =
+    netSales > 0
+      ? (totaleDanni / netSales) * 100
+      : 0;
+
+  const shrinkagePerc =
+    netSales > 0
+      ? (shrinkageValore / netSales) * 100
+      : 0;
+
+  thead.innerHTML = `
+    <tr>
+      <th colspan="3"
+          style="background:#c62828;color:white;padding:12px;">
+          📉 SHRINKAGE
+      </th>
+    </tr>
+  `;
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="3" style="padding:25px">
+
+        <div style="
+          max-width:700px;
+          margin:auto;
+          border:2px solid #444;
+          background:white;
+          padding:20px">
+
+          <h2>${cinemaName}</h2>
+
+          <p>
+            Data:
+            ${new Date().toLocaleDateString("it-IT")}
+          </p>
+
+          <table style="
+            width:100%;
+            border-collapse:collapse">
+
+            <tr>
+              <th>Voce</th>
+              <th>Valore</th>
+              <th>%</th>
+            </tr>
+
+            <tr>
+              <td>Tot. Netto Venduto</td>
+
+              <td>
+                <input
+                  type="number"
+                  value="${netSales}"
+                  oninput="updateNetSales(this.value)"
+                  style="
+                    width:100%;
+                    padding:6px">
+              </td>
+
+              <td>-</td>
+            </tr>
+
+            <tr>
+              <td>Differenza Valore Totale</td>
+
+              <td>
+                € ${fmtMoney(totaleDiffValore)}
+              </td>
+
+              <td>
+                ${diffPerc.toFixed(2)}%
+              </td>
+            </tr>
+
+            <tr>
+              <td>Danni</td>
+
+              <td>
+                € ${fmtMoney(totaleDanni)}
+              </td>
+
+              <td>
+                ${danniPerc.toFixed(2)}%
+              </td>
+            </tr>
+
+            <tr style="
+              background:#ffebee;
+              font-weight:bold">
+
+              <td>SHRINKAGE</td>
+
+              <td>
+                € ${fmtMoney(shrinkageValore)}
+              </td>
+
+              <td>
+                ${shrinkagePerc.toFixed(2)}%
+              </td>
+
+            </tr>
+
+          </table>
+
+        </div>
+
+      </td>
+    </tr>
+  `;
+}
+
 /* --- RENDER DELLE SCHEDE SPECIALI (CARAMELLE) --- */
 function renderCandyView() {
   const container = $("tbody");
