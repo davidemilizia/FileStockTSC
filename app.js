@@ -229,12 +229,6 @@ document.addEventListener("DOMContentLoaded", () => {
     $("search").addEventListener("input", render);
   }
 });
-let netSales =
-  parseFloat(
-    localStorage.getItem(
-      "net_sales_" + cinemaName
-    )
-  ) || 0;
 
 function updateNetSales(val) {
 
