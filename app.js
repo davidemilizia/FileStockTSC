@@ -239,6 +239,7 @@ function updateNetSales(val) {
         netSales
     );
 
+    renderShrinkageView();
 }
 
 function renderShrinkageView() {
