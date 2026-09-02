@@ -229,7 +229,24 @@ document.addEventListener("DOMContentLoaded", () => {
     $("search").addEventListener("input", render);
   }
 });
+let netSales =
+  parseFloat(
+    localStorage.getItem(
+      "net_sales_" + cinemaName
+    )
+  ) || 0;
 
+function updateNetSales(val) {
+
+  netSales = n(val);
+
+  localStorage.setItem(
+    "net_sales_" + cinemaName,
+    netSales
+  );
+
+  renderShrinkageView();
+}
 /* --- RENDER DELLE SCHEDE SPECIALI (CARAMELLE) --- */
 function renderCandyView() {
   const container = $("tbody");
