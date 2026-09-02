@@ -4,6 +4,12 @@
 let mag = [], size = [], rows = [], postMixProducts = [];
 let cinemaName = "TSC Beinasco";
 let warehouses = ["Bar Principale", "Deposito Centrale", "Stand Popcorn"]; 
+let netSales =
+  parseFloat(
+    localStorage.getItem(
+      "net_sales_" + cinemaName
+    )
+  ) || 0;
 let currentTab = 0; 
 let productSortDirection = "az";
 let countsData = {}; 
