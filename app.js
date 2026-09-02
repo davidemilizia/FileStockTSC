@@ -2045,6 +2045,10 @@ function render() {
   if (currentTab === 'candy') { renderCandyView(); return; }
   if (currentTab === 'postmix') { renderPostMixView(); return; }
   if (currentTab === 'distributors') { renderDistributorsView(); return; }  
+     if (currentTab === 'shrinkage') {
+    renderShrinkageView();
+    return;
+  }
   const q = $("search") ? norm($("search").value) : "";
   let data = rows.filter(x =>
   norm(x.name).includes(q) ||
