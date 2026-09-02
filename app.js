@@ -2161,16 +2161,14 @@ function getGlobalRilevato(code, r) {
 
 for (let [dName, dVal] of Object.entries(distTotals)) {
 
-  const dNameClean = cleanStr(dName);
+    const dNameClean = cleanStr(dName);
 
-  if (
-      dNameClean === rNameClean ||
-      dNameClean.includes(rNameClean) ||
-      rNameClean.includes(dNameClean)
-  ) {
-      basePezzi += dVal;
-      break;
-  }
+    if (dNameClean === rNameClean) {
+
+        basePezzi += dVal;
+        break;
+
+    }
 }
   return basePezzi + getKitContributionDetail(r.name, r.code);
 }
