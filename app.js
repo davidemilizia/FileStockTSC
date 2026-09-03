@@ -1813,10 +1813,37 @@ function addWarehouseInput() {
   const div = document.createElement("div");
   div.className = "wh-item";
   div.style.cssText = "display: flex; gap: 10px; margin-bottom: 8px;";
-  div.innerHTML = `
-    <input class="wh-input-item" value="Magazzino ${container.children.length + 1}" placeholder="Nome Magazzino" style="flex:1; padding: 6px 10px;">
-    <button class="btn btn-danger" onclick="this.parentElement.remove()" style="background:#d32f2f; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Elimina</button>
-  `;
+ div.innerHTML = `
+<input
+  class="wh-input-item"
+  value="Magazzino ${container.children.length + 1}"
+  placeholder="Nome Magazzino"
+  style="flex:1;padding:6px 10px;">
+
+<select
+  class="wh-type-item"
+  style="width:140px;">
+
+  <option value="standard">
+    Standard
+  </option>
+
+  <option value="candy">
+    Caramelle
+  </option>
+
+  <option value="postmix">
+    Post Mix
+  </option>
+
+</select>
+
+<button
+  class="btn btn-danger"
+  onclick="this.parentElement.remove()">
+  Elimina
+</button>
+`;
   container.appendChild(div);
 }
 
