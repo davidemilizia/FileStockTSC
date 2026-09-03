@@ -40,29 +40,101 @@ const DEFAULT_CINEMAS = [
 let candyGridConfigs = JSON.parse(localStorage.getItem("candy_grid_configs")) || {};
 
 function getActiveCinemaCandyConfig() {
+
+  const kgKey =
+    currentKgWarehouse || "_DEFAULT_";
+
   if (!candyGridConfigs[cinemaName]) {
-    candyGridConfigs[cinemaName] = {
+    candyGridConfigs[cinemaName] = {};
+  }
+
+  if (!candyGridConfigs[cinemaName][kgKey]) {
+
+    candyGridConfigs[cinemaName][kgKey] = {
+
       blocksCount: 2,
+
       orientation: "vertical",
+
       tares: [0.37, 0.72, 0.50, 1.00],
+
       blocks: [
-        { id: "block_0", name: "🍬 Espositore Principale", columns: 22, rows: 2, gridValues: {} },
-        { id: "block_1", name: "📦 Scorte / Magazzino", columns: 10, rows: 2, gridValues: {} }
+        {
+          id: "block_0",
+          name: "⚖️ Espositore Principale",
+          columns: 22,
+          rows: 2,
+          gridValues: {}
+        },
+        {
+          id: "block_1",
+          name: "📦 Scorte / Magazzino",
+          columns: 10,
+          rows: 2,
+          gridValues: {}
+        }
       ],
-      buste: Array(10).fill().map(() => ({kg: 0, sleeve: 0}))
+
+      buste: Array(10)
+        .fill()
+        .map(() => ({
+          kg: 0,
+          sleeve: 0
+        }))
     };
   }
-  let cfg = candyGridConfigs[cinemaName];
-  if (cfg.blocksCount === undefined) cfg.blocksCount = cfg.blocks ? cfg.blocks.length : 2;
-  if (!cfg.orientation) cfg.orientation = "vertical";
-  if (!cfg.tares || !Array.isArray(cfg.tares)) cfg.tares = [0.37, 0.72, 0.50, 1.00];
+
+  let cfg =
+    candyGridConfigs[cinemaName][kgKey];
+
+  if (cfg.blocksCount === undefined)
+    cfg.blocksCount =
+      cfg.blocks
+        ? cfg.blocks.length
+        : 2;
+
+  if (!cfg.orientation)
+    cfg.orientation = "vertical";
+
+  if (!cfg.tares || !Array.isArray(cfg.tares))
+    cfg.tares =
+      [0.37, 0.72, 0.50, 1.00];
+
   if (!cfg.blocks || !Array.isArray(cfg.blocks)) {
+
     cfg.blocks = [
-      { id: "block_0", name: "🍬 Espositore Principale", columns: 22, rows: 2, gridValues: {} },
-      { id: "block_1", name: "📦 Scorte / Magazzino", columns: 10, rows: 2, gridValues: {} }
+      {
+        id: "block_0",
+        name: "⚖️ Espositore Principale",
+        columns: 22,
+        rows: 2,
+        gridValues: {}
+      },
+      {
+        id: "block_1",
+        name: "📦 Scorte / Magazzino",
+        columns: 10,
+        rows: 2,
+        gridValues: {}
+      }
     ];
+
   }
-  if (!cfg.buste || !Array.isArray(cfg.buste)) cfg.buste = Array(10).fill().map(() => ({kg: 0, sleeve: 0}));
+
+  if (
+    !cfg.buste ||
+    !Array.isArray(cfg.buste)
+  ) {
+
+    cfg.buste = Array(10)
+      .fill()
+      .map(() => ({
+        kg: 0,
+        sleeve: 0
+      }));
+
+  }
+
   return cfg;
 }
 
