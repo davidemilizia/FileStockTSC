@@ -1774,7 +1774,10 @@ inputs.forEach((inp, idx) => {
   
   warehouses = newWh;
   localStorage.setItem("cinema_warehouses", JSON.stringify(warehouses));
-  
+  localStorage.setItem(
+  "warehouse_types",
+  JSON.stringify(warehouseTypes)
+);
   updateHeaderTitle();
   currentTab = 0;
   switchTab();
