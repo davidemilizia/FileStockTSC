@@ -1689,7 +1689,6 @@ function loadSetupFromStorage() {
         JSON.parse(savedWh);
     } catch(e){}
   }
-}
 const savedProducts =
   localStorage.getItem(
     "warehouse_products_" + cinemaName
@@ -1701,6 +1700,8 @@ if (savedProducts) {
       JSON.parse(savedProducts);
   } catch(e){}
 }
+}
+   
 function loadCountsFromStorage() {
   const savedCounts = localStorage.getItem("inventory_counts");
   if (savedCounts) { try { countsData = JSON.parse(savedCounts); } catch(e){} }
