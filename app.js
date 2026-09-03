@@ -4,6 +4,10 @@
 let mag = [], size = [], rows = [], postMixProducts = [];
 let cinemaName = "TSC Beinasco";
 let warehouses = ["Bar Principale", "Deposito Centrale", "Stand Popcorn"]; 
+let warehouseTypes =
+JSON.parse(
+  localStorage.getItem("warehouse_types")
+) || {};
 let netSales =
   parseFloat(
     localStorage.getItem(
