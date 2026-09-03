@@ -1880,6 +1880,11 @@ div.innerHTML = `
     </option>
 
   </select>
+<input
+  class="wh-product-item"
+  value="${warehouseProducts[w] || ''}"
+  placeholder="Prodotto inventario"
+  style="width:220px;padding:6px 10px;">
 
   <button
     class="btn btn-danger"
