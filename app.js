@@ -1673,10 +1673,21 @@ function updateHeaderTitle() {
 function showError(msg) { alert(msg); }
 
 function loadSetupFromStorage() {
-  const savedCinema = localStorage.getItem("cinema_info_name");
-  if (savedCinema) cinemaName = savedCinema;
-  const savedWh = localStorage.getItem("cinema_warehouses");
-  if (savedWh) { try { warehouses = JSON.parse(savedWh); } catch(e){} }
+  const savedCinema =
+    localStorage.getItem("cinema_info_name");
+
+  if (savedCinema)
+    cinemaName = savedCinema;
+
+  const savedWh =
+    localStorage.getItem("cinema_warehouses");
+
+  if (savedWh) {
+    try {
+      warehouses =
+        JSON.parse(savedWh);
+    } catch(e){}
+  }
 }
 
 function loadCountsFromStorage() {
