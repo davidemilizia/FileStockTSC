@@ -1848,10 +1848,10 @@ div.innerHTML = `
       Standard
     </option>
 
-    <option value="candy"
-      ${selectedType==="candy" ? "selected" : ""}>
-      Caramelle
-    </option>
+     <option value="kg"
+     ${selectedType==="kg" ? "selected" : ""}>
+     Prodotto a Kg
+     </option>
 
     <option value="postmix"
       ${selectedType==="postmix" ? "selected" : ""}>
