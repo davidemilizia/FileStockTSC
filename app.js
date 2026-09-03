@@ -2368,9 +2368,39 @@ function getGlobalRilevato(code, r) {
   
   let basePezzi = (totBox * r.boxSize) + (totSleeve * r.sleeveSize) + totSfuso;
   
-  if (norm(r.name).includes("CARAMELLE") && norm(r.name).includes("AERMONT")) {
-    basePezzi += getCandyTotalKg();
-  }
+ for (const whName of warehouses) {
+
+    const whType =
+        warehouseTypes[whName];
+
+    if (whType !== "kg")
+        continue;
+
+    const targetProduct =
+        warehouseProducts[whName];
+
+    if (!targetProduct)
+        continue;
+
+    if (
+        norm(targetProduct) ===
+        norm(r.name)
+    ) {
+
+        const oldWarehouse =
+            currentKgWarehouse;
+
+        currentKgWarehouse =
+            whName;
+
+        basePezzi +=
+            getCandyTotalKg();
+
+        currentKgWarehouse =
+            oldWarehouse;
+    }
+
+}
   const postMixTotals = getPostMixProductTotals();
   const cleanStr = str => norm(str).replace(/[^A-Z0-9]/g, "");
   const rNameClean = cleanStr(r.name);
