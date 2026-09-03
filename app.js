@@ -1892,11 +1892,7 @@ if (wType === "postmix")
 
 btn.textContent =
   `${icon} ${w}`;
-    typeof w === "string"
-      ? w
-      : (w.name || w.nome || `Magazzino ${idx + 1}`)
-  }`;
-
+   
   btn.onclick = () => {
     currentTab = idx;
     switchTab();
