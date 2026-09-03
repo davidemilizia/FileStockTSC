@@ -1793,6 +1793,10 @@ warehouseProducts[val] =
   "warehouse_types_" + cinemaName,
   JSON.stringify(warehouseTypes)
 );
+   localStorage.setItem(
+  "warehouse_products_" + cinemaName,
+  JSON.stringify(warehouseProducts)
+);
   updateHeaderTitle();
   currentTab = 0;
   switchTab();
