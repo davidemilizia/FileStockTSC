@@ -1766,6 +1766,8 @@ function saveWarehousesSetup() {
   const inputs = document.querySelectorAll(".wh-input-item");
    const typeInputs =
 document.querySelectorAll(".wh-type-item");
+   const productInputs =
+document.querySelectorAll(".wh-product-item");
   const newWh = [];
  warehouseTypes = {};
 
@@ -1780,7 +1782,8 @@ inputs.forEach((inp, idx) => {
 
   warehouseTypes[val] =
     typeInputs[idx].value;
-
+warehouseProducts[val] =
+  productInputs[idx].value.trim();
 });
   if (newWh.length === 0) { alert("Inserisci almeno un magazzino!"); return; }
   
