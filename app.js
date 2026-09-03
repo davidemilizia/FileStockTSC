@@ -9,6 +9,7 @@ JSON.parse(
   localStorage.getItem("warehouse_types")
 ) || {};
 let warehouseProducts = {};
+let currentKgWarehouse = null;
 let netSales =
   parseFloat(
     localStorage.getItem(
