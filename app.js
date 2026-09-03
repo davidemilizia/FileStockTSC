@@ -1931,7 +1931,7 @@ function renderTabs() {
 const wType =
   warehouseTypes[w] || "standard";
 
-if (wType === "candy")
+if (wType === "kg")
   icon = "🍬";
 
 if (wType === "postmix")
@@ -1945,7 +1945,7 @@ btn.textContent =
   const wType =
     warehouseTypes[w] || "standard";
 
-  if (wType === "candy") {
+  if (wType === "kg") {
     currentTab = "candy";
     switchTab();
     return;
