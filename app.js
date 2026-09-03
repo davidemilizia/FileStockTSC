@@ -1748,11 +1748,24 @@ function saveWarehousesSetup() {
   }
   localStorage.setItem("cinema_info_name", cinemaName);
   const inputs = document.querySelectorAll(".wh-input-item");
+   const typeInputs =
+document.querySelectorAll(".wh-type-item");
   const newWh = [];
-  inputs.forEach(inp => {
-    const val = inp.value.trim();
-    if (val) newWh.push(val);
-  });
+ warehouseTypes = {};
+
+inputs.forEach((inp, idx) => {
+
+  const val =
+    inp.value.trim();
+
+  if (!val) return;
+
+  newWh.push(val);
+
+  warehouseTypes[val] =
+    typeInputs[idx].value;
+
+});
   if (newWh.length === 0) { alert("Inserisci almeno un magazzino!"); return; }
   
   warehouses = newWh;
@@ -1862,7 +1875,19 @@ function renderTabs() {
   const btn = document.createElement("button");
   btn.className = `tab-btn ${currentTab === idx ? 'active' : ''}`;
 
-  btn.textContent = `📍 ${
+  let icon = "📦";
+
+const wType =
+  warehouseTypes[w] || "standard";
+
+if (wType === "candy")
+  icon = "🍬";
+
+if (wType === "postmix")
+  icon = "🥤";
+
+btn.textContent =
+  `${icon} ${w}`;
     typeof w === "string"
       ? w
       : (w.name || w.nome || `Magazzino ${idx + 1}`)
