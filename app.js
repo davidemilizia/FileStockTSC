@@ -1785,8 +1785,8 @@ inputs.forEach((inp, idx) => {
   
   warehouses = newWh;
   localStorage.setItem("cinema_warehouses", JSON.stringify(warehouses));
-  localStorage.setItem(
-  "warehouse_types",
+ localStorage.setItem(
+  "warehouse_types_" + cinemaName,
   JSON.stringify(warehouseTypes)
 );
   updateHeaderTitle();
