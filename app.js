@@ -1794,7 +1794,9 @@ inputs.forEach((inp, idx) => {
   warehouseTypes[val] =
     typeInputs[idx].value;
 warehouseProducts[val] =
-  productInputs[idx].value.trim();
+  productInputs[idx]
+    ? productInputs[idx].value.trim()
+    : "";
 });
   if (newWh.length === 0) { alert("Inserisci almeno un magazzino!"); return; }
   
