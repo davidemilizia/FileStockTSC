@@ -1762,6 +1762,16 @@ function loadSetupFromStorage() {
         JSON.parse(savedWh);
     } catch(e){}
   }
+   const savedTypes =
+  localStorage.getItem(
+    "warehouse_types_" + cinemaName
+  );
+if (savedTypes) {
+  try {
+    warehouseTypes =
+      JSON.parse(savedTypes);
+  } catch(e){}
+}
 const savedProducts =
   localStorage.getItem(
     "warehouse_products_" + cinemaName
