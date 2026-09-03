@@ -1990,10 +1990,15 @@ btn.textContent =
     warehouseTypes[w] || "standard";
 
   if (wType === "kg") {
+
+    currentKgWarehouse = w;
+
     currentTab = "candy";
+
     switchTab();
+
     return;
-  }
+}
 
   if (wType === "postmix") {
     currentTab = "postmix";
