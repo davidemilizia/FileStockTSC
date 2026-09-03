@@ -1889,6 +1889,7 @@ warehouseProducts[val] =
 }
 
 function renderSetupView() {
+ loadSetupFromStorage();
   if ($("tabContent")) $("tabContent").style.display = "none";
   if ($("setupView")) $("setupView").style.display = "block";
   
