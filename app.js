@@ -1902,7 +1902,10 @@ function addWarehouseInput() {
   </option>
 
 </select>
-
+<input
+  class="wh-product-item"
+  placeholder="Prodotto inventario"
+  style="width:220px;padding:6px 10px;">
 <button
   class="btn btn-danger"
   onclick="this.parentElement.remove()">
