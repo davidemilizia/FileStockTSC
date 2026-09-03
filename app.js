@@ -1892,9 +1892,9 @@ function addWarehouseInput() {
     Standard
   </option>
 
-  <option value="candy">
-    Caramelle
-  </option>
+   <option value="kg">
+   Prodotto a Kg
+   </option>
 
   <option value="postmix">
     Post Mix
