@@ -1880,11 +1880,25 @@ div.innerHTML = `
     </option>
 
   </select>
-<input
+<select
   class="wh-product-item"
-  value="${warehouseProducts[w] || ''}"
-  placeholder="Prodotto inventario"
-  style="width:220px;padding:6px 10px;">
+  style="width:260px;padding:6px;">
+
+  <option value="">
+    -- Seleziona Prodotto --
+  </option>
+
+  ${rows.map(r => `
+    <option
+      value="${esc(r.name)}"
+      ${(warehouseProducts[w] === r.name)
+        ? "selected"
+        : ""}>
+      ${esc(r.name)}
+    </option>
+  `).join("")}
+
+</select>
 
   <button
     class="btn btn-danger"
