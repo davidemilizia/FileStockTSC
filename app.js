@@ -1929,25 +1929,29 @@ if (wType === "postmix")
 btn.textContent =
   `${icon} ${w}`;
    
-  btn.onclick = () => {
-    currentTab = idx;
+ btn.onclick = () => {
+
+  const wType =
+    warehouseTypes[w] || "standard";
+
+  if (wType === "candy") {
+    currentTab = "candy";
     switchTab();
-  };
+    return;
+  }
+
+  if (wType === "postmix") {
+    currentTab = "postmix";
+    switchTab();
+    return;
+  }
+
+  currentTab = idx;
+  switchTab();
+};
 
   bar.appendChild(btn);
 });
-  
-  const candyBtn = document.createElement("button");
-  candyBtn.className = `tab-btn ${currentTab === 'candy' ? 'active' : ''}`;
-  candyBtn.innerHTML = `🍬 Caramelle`;
-  candyBtn.onclick = () => { currentTab = 'candy'; switchTab(); };
-  bar.appendChild(candyBtn);
-  
-  const postMixBtn = document.createElement("button");
-  postMixBtn.className = `tab-btn ${currentTab === 'postmix' ? 'active' : ''}`;
-  postMixBtn.innerHTML = `🥤 Post Mix`;
-  postMixBtn.onclick = () => { currentTab = 'postmix'; switchTab(); };
-  bar.appendChild(postMixBtn);
   
   const distBtn = document.createElement("button");
   distBtn.className = `tab-btn ${currentTab === 'distributors' ? 'active' : ''}`;
