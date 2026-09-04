@@ -2346,7 +2346,7 @@ function parseSize(m) {
 }
 
 function build() {
-  if (!mag.length || !size.length) {
+ if (!mag.length) {
     if ($("mainStatus")) {
       $("mainStatus").style.display = "block";
       $("mainStatus").innerHTML = `Magazzino: <b>${mag.length}</b> · SIZE: <b>${size.length}</b><br>Carica entrambi i file per continuare.`;
