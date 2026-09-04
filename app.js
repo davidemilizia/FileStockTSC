@@ -22,7 +22,7 @@ let countsData = {};
 let hiddenProducts =
 JSON.parse(
   localStorage.getItem("hidden_products")
-) || [];
+) || {};
 let showHiddenMode = false;
 const MAX_FIELDS = 10;
 const DEFAULT_CINEMAS = [
