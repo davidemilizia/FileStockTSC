@@ -2495,6 +2495,20 @@ function toggleProductSort() {
       : "az";
   render();
 }
+function toggleReportSection() {
+
+  reportSectionExpanded =
+    !reportSectionExpanded;
+
+  localStorage.setItem(
+    "report_section_expanded",
+    JSON.stringify(
+      reportSectionExpanded
+    )
+  );
+
+  render();
+}
 function toggleProductVisibility(code) {
 console.log(
   "TAB",
