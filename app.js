@@ -2748,9 +2748,15 @@ ${esc(r.code)}
 
 </td>
         <td>${esc(r.uom)}</td>
-        <td>${fmt(r.iniziale)}</td>
-        <td>${fmt(r.danni)}</td>
-        <td>${fmt(r.venduto)}</td>
+       ${
+reportSectionExpanded
+? `
+<td>${fmt(r.iniziale)}</td>
+<td>${fmt(r.danni)}</td>
+<td>${fmt(r.venduto)}</td>
+`
+: ""
+}
         <td class="grp-box">${r.boxSize || '-'}</td>
         <td class="grp-box"
         style="${(!r.boxSize || r.boxSize <= 0) ? 'background:#e9ecef;color:#6c757d;text-align:center;font-weight:bold;' : ''}">
