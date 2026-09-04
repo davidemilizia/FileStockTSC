@@ -2455,9 +2455,9 @@ console.log(
   const key =
     String(currentTab);
 
-  if (!hiddenProducts[key]) {
-    hiddenProducts[key] = [];
-  }
+ if (!Array.isArray(hiddenProducts[key])) {
+  hiddenProducts[key] = [];
+}
 
   const idx =
     hiddenProducts[key].indexOf(code);
