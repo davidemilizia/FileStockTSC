@@ -1804,6 +1804,29 @@ if (savedProducts) {
       JSON.parse(savedProducts);
   } catch(e){}
 }
+   const savedSize =
+  localStorage.getItem(
+    "size_data_" + cinemaName
+  );
+
+if (savedSize) {
+  try {
+    size =
+      JSON.parse(savedSize);
+  } catch(e){}
+}
+
+const savedPostMix =
+  localStorage.getItem(
+    "postmix_data_" + cinemaName
+  );
+
+if (savedPostMix) {
+  try {
+    postMixProducts =
+      JSON.parse(savedPostMix);
+  } catch(e){}
+}
 }
    
 function loadCountsFromStorage() {
