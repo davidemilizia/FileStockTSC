@@ -2636,7 +2636,15 @@ font-size:11px;
 padding:2px 5px;
 "
 >
-👁
+${
+(hiddenProducts[String(currentTab)] || [])
+.includes(r.code)
+
+? "🙈"
+
+: "👁️"
+}
+``
 </button>
 
 <br>
