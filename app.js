@@ -1884,13 +1884,33 @@ localStorage.removeItem("inventory_counts");
     JSON.stringify(postMixGridConfigs)
   );
 
-  // Distributori
-  delete distributorGridConfigs[cinemaName];
-  localStorage.setItem(
-    "distributor_grid_configs",
-    JSON.stringify(distributorGridConfigs)
-  );
-   }
+ const distCfg =
+  distributorGridConfigs[cinemaName];
+
+if (
+  distCfg &&
+  distCfg.distributors
+) {
+
+  distCfg.distributors.forEach(d => {
+
+    (d.rows || []).forEach(r => {
+
+      r.stockIniziale = "";
+      r.contaFinale = "";
+
+      r.insertions = [];
+
+    });
+
+  });
+
+}
+
+localStorage.setItem(
+  "distributor_grid_configs",
+  JSON.stringify(distributorGridConfigs)
+);
 function showHiddenProducts() {
 
   showHiddenMode = !showHiddenMode;
