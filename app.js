@@ -2447,16 +2447,23 @@ function toggleProductSort() {
 }
 function toggleProductVisibility(code) {
 
+  const key =
+    String(currentTab);
+
+  if (!hiddenProducts[key]) {
+    hiddenProducts[key] = [];
+  }
+
   const idx =
-    hiddenProducts.indexOf(code);
+    hiddenProducts[key].indexOf(code);
 
   if (idx >= 0) {
 
-    hiddenProducts.splice(idx, 1);
+    hiddenProducts[key].splice(idx, 1);
 
   } else {
 
-    hiddenProducts.push(code);
+    hiddenProducts[key].push(code);
 
   }
 
@@ -2466,8 +2473,8 @@ function toggleProductVisibility(code) {
   );
 
   render();
-
 }
+
 function render() {
   if (currentTab === 'setup') return;
   if (currentTab === 'candy') { renderCandyView(); return; }
