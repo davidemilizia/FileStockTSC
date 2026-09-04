@@ -1911,6 +1911,7 @@ localStorage.setItem(
   "distributor_grid_configs",
   JSON.stringify(distributorGridConfigs)
 );
+   }
 function showHiddenProducts() {
 
   showHiddenMode = !showHiddenMode;
