@@ -2796,7 +2796,16 @@ ${esc(r.code)}
   tbody.innerHTML = html;
   if (typeof recalcKPIs === 'function') recalcKPIs();
 }
+document
+  .querySelectorAll(".report-mag-col")
+  .forEach(el => {
 
+    el.style.display =
+      reportSectionExpanded
+        ? ""
+        : "none";
+
+  });
 function modifyCountValue(widx, code, type, idx, val) {
   if (typeof updateCount === 'function') {
     updateCount(widx, code, type, idx, val);
