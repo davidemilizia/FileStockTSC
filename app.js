@@ -1814,6 +1814,34 @@ if (savedPostMix) {
       JSON.parse(savedPostMix);
   } catch(e){}
 }
+   const savedFileName =
+  localStorage.getItem(
+    "size_filename_" + cinemaName
+  );
+
+const savedDate =
+  localStorage.getItem(
+    "size_lastupdate_" + cinemaName
+  );
+
+if (
+  size.length > 0 &&
+  $("sizeStatus")
+) {
+
+  $("sizeStatus").innerHTML = `
+    ✅ SIZE caricato da memoria
+    <br>
+    📦 ${size.length} articoli
+    <br>
+    🥤 ${postMixProducts.length} prodotti Post Mix
+    <br>
+    📄 ${savedFileName || ""}
+    <br>
+    🕒 ${savedDate || ""}
+  `;
+
+}
 }
    
 function loadCountsFromStorage() {
