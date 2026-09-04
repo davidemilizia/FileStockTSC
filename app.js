@@ -1623,9 +1623,9 @@ function exportCurrentInventoryToExcel() {
         <tr>
           <th>Prodotto</th>
           <th>U.M.</th>
-          <th>Iniziale</th>
-          <th>Danni</th>
-          <th>Venduto</th>
+          <th class="report-mag-col">Iniziale</th>
+          <th class="report-mag-col">Danni</th>
+          <th class="report-mag-col">Venduto</th>
           <th>Size Box</th>
           <th>Q.tà Box</th>
           <th>Size Sleeve</th>
