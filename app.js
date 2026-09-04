@@ -2491,9 +2491,12 @@ function render() {
 );
 if (!showHiddenMode) {
 
-  data = data.filter(
-    p => !hiddenProducts.includes(p.code)
-  );
+ const hiddenList =
+  hiddenProducts[String(currentTab)] || [];
+
+data = data.filter(
+  p => !hiddenList.includes(p.code)
+);
 
 }
 if (productSortDirection === "az") {
