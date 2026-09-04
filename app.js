@@ -2602,9 +2602,16 @@ if (productSortDirection === "az") {
   Prodotto ↕
 </th>
         <th>U.M.</th>
-        <th>Iniziale</th>
-        <th>Danni</th>
-        <th>Venduto</th>
+       <th>
+<button
+type="button"
+onclick="showHistoricalData()"
+style="
+padding:2px 8px;
+cursor:pointer;">
+📜
+</button>
+</th>
         <th class="grp-box">Size</th>
         <th class="grp-box">Q.tà</th>
         <th class="grp-sleeve">Size</th>
