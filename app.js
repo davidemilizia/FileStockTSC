@@ -295,6 +295,27 @@ document.addEventListener("DOMContentLoaded", () => {
         let parsedSizeResult = parseSize(m);
         size = parsedSizeResult.size;
         postMixProducts = parsedSizeResult.postMix;
+         // Salvataggio automatico SIZE per cinema
+
+localStorage.setItem(
+  "size_data_" + cinemaName,
+  JSON.stringify(size)
+);
+
+localStorage.setItem(
+  "postmix_data_" + cinemaName,
+  JSON.stringify(postMixProducts)
+);
+
+localStorage.setItem(
+  "size_filename_" + cinemaName,
+  f.name
+);
+
+localStorage.setItem(
+  "size_lastupdate_" + cinemaName,
+  new Date().toISOString()
+);
         if ($("sizeStatus")) $("sizeStatus").textContent = `✓ ${f.name} (${size.length} articoli, ${postMixProducts.length} post-mix)`;
         build();
       }).catch(err => {
