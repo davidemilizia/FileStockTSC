@@ -4,25 +4,14 @@
 let mag = [], size = [], rows = [], postMixProducts = [];
 let cinemaName = "TSC Beinasco";
 let warehouses = ["Bar Principale", "Deposito Centrale", "Stand Popcorn"]; 
-let warehouseTypes =
-JSON.parse(
-  localStorage.getItem("warehouse_types")
-) || {};
+let warehouseTypes = JSON.parse(localStorage.getItem("warehouse_types")) || {};
 let warehouseProducts = {};
 let currentKgWarehouse = null;
-let netSales =
-  parseFloat(
-    localStorage.getItem(
-      "net_sales_" + cinemaName
-    )
-  ) || 0;
+let netSales = parseFloat(localStorage.getItem("net_sales_" + cinemaName)) || 0;
 let currentTab = 0; 
 let productSortDirection = "az";
 let countsData = {}; 
-let hiddenProducts =
-JSON.parse(
-  localStorage.getItem("hidden_products")
-) || {};
+let hiddenProducts = JSON.parse(localStorage.getItem("hidden_products")) || {};
 let showHiddenMode = false;
 const MAX_FIELDS = 10;
 const DEFAULT_CINEMAS = [
@@ -40,99 +29,40 @@ const DEFAULT_CINEMAS = [
 let candyGridConfigs = JSON.parse(localStorage.getItem("candy_grid_configs")) || {};
 
 function getActiveCinemaCandyConfig() {
-
-  const kgKey =
-    currentKgWarehouse || "_DEFAULT_";
+  const kgKey = currentKgWarehouse || "_DEFAULT_";
 
   if (!candyGridConfigs[cinemaName]) {
     candyGridConfigs[cinemaName] = {};
   }
 
   if (!candyGridConfigs[cinemaName][kgKey]) {
-
     candyGridConfigs[cinemaName][kgKey] = {
-
       blocksCount: 2,
-
       orientation: "vertical",
-
       tares: [0.37, 0.72, 0.50, 1.00],
-
       blocks: [
-        {
-          id: "block_0",
-          name: "⚖️ Espositore Principale",
-          columns: 22,
-          rows: 2,
-          gridValues: {}
-        },
-        {
-          id: "block_1",
-          name: "📦 Scorte / Magazzino",
-          columns: 10,
-          rows: 2,
-          gridValues: {}
-        }
+        { id: "block_0", name: "⚖️ Espositore Principale", columns: 22, rows: 2, gridValues: {} },
+        { id: "block_1", name: "📦 Scorte / Magazzino", columns: 10, rows: 2, gridValues: {} }
       ],
-
-      buste: Array(10)
-        .fill()
-        .map(() => ({
-          kg: 0,
-          sleeve: 0
-        }))
+      buste: Array(10).fill().map(() => ({ kg: 0, sleeve: 0 }))
     };
   }
 
-  let cfg =
-    candyGridConfigs[cinemaName][kgKey];
+  let cfg = candyGridConfigs[cinemaName][kgKey];
 
-  if (cfg.blocksCount === undefined)
-    cfg.blocksCount =
-      cfg.blocks
-        ? cfg.blocks.length
-        : 2;
-
-  if (!cfg.orientation)
-    cfg.orientation = "vertical";
-
-  if (!cfg.tares || !Array.isArray(cfg.tares))
-    cfg.tares =
-      [0.37, 0.72, 0.50, 1.00];
+  if (cfg.blocksCount === undefined) cfg.blocksCount = cfg.blocks ? cfg.blocks.length : 2;
+  if (!cfg.orientation) cfg.orientation = "vertical";
+  if (!cfg.tares || !Array.isArray(cfg.tares)) cfg.tares = [0.37, 0.72, 0.50, 1.00];
 
   if (!cfg.blocks || !Array.isArray(cfg.blocks)) {
-
     cfg.blocks = [
-      {
-        id: "block_0",
-        name: "⚖️ Espositore Principale",
-        columns: 22,
-        rows: 2,
-        gridValues: {}
-      },
-      {
-        id: "block_1",
-        name: "📦 Scorte / Magazzino",
-        columns: 10,
-        rows: 2,
-        gridValues: {}
-      }
+      { id: "block_0", name: "⚖️ Espositore Principale", columns: 22, rows: 2, gridValues: {} },
+      { id: "block_1", name: "📦 Scorte / Magazzino", columns: 10, rows: 2, gridValues: {} }
     ];
-
   }
 
-  if (
-    !cfg.buste ||
-    !Array.isArray(cfg.buste)
-  ) {
-
-    cfg.buste = Array(10)
-      .fill()
-      .map(() => ({
-        kg: 0,
-        sleeve: 0
-      }));
-
+  if (!cfg.buste || !Array.isArray(cfg.buste)) {
+    cfg.buste = Array(10).fill().map(() => ({ kg: 0, sleeve: 0 }));
   }
 
   return cfg;
@@ -149,8 +79,8 @@ function getCandyTotalKg() {
     cfg.blocks.forEach(block => {
       let rowsCount = parseInt(block.rows) || 0;
       let colsCount = parseInt(block.columns) || 0;
-      for(let r=0; r<rowsCount; r++) {
-        for(let c=0; c<colsCount; c++) {
+      for (let r = 0; r < rowsCount; r++) {
+        for (let c = 0; c < colsCount; c++) {
           let cellData = block.gridValues?.[r]?.[c];
           if (cellData) {
             let weight = n(cellData.weight || 0);
@@ -201,8 +131,8 @@ function getPostMixProductTotals() {
     cfg.blocks.forEach(block => {
       let rowsCount = parseInt(block.rows) || 0;
       let colsCount = parseInt(block.columns) || 0;
-      for(let r=0; r<rowsCount; r++) {
-        for(let c=0; c<colsCount; c++) {
+      for (let r = 0; r < rowsCount; r++) {
+        for (let c = 0; c < colsCount; c++) {
           let cellData = block.gridValues?.[r]?.[c];
           if (cellData && cellData.prodName) {
             let weight = n(cellData.weight || 0);
@@ -271,6 +201,7 @@ document.addEventListener("DOMContentLoaded", () => {
   injectExcelTemplateButton();
   const bottomExportBtns = document.querySelectorAll("button[onclick*='export'], .btn-export");
   bottomExportBtns.forEach(btn => btn.remove());
+
   if ($("magFile")) {
     $("magFile").addEventListener("change", e => {
       const f = e.target.files[0];
@@ -286,6 +217,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
   }
+
   if ($("sizeFile")) {
     $("sizeFile").addEventListener("change", e => {
       const f = e.target.files[0];
@@ -295,24 +227,10 @@ document.addEventListener("DOMContentLoaded", () => {
         let parsedSizeResult = parseSize(m);
         size = parsedSizeResult.size;
         postMixProducts = parsedSizeResult.postMix;
-         localStorage.setItem(
-  "size_data_" + cinemaName,
-  JSON.stringify(size)
-);
-
-localStorage.setItem(
-  "postmix_data_" + cinemaName,
-  JSON.stringify(postMixProducts)
-);
-         localStorage.setItem(
-  "size_filename_" + cinemaName,
-  f.name
-);
-
-localStorage.setItem(
-  "size_lastupdate_" + cinemaName,
-  new Date().toLocaleString("it-IT")
-);
+        localStorage.setItem("size_data_" + cinemaName, JSON.stringify(size));
+        localStorage.setItem("postmix_data_" + cinemaName, JSON.stringify(postMixProducts));
+        localStorage.setItem("size_filename_" + cinemaName, f.name);
+        localStorage.setItem("size_lastupdate_" + cinemaName, new Date().toLocaleString("it-IT"));
         if ($("sizeStatus")) $("sizeStatus").textContent = `✓ ${f.name} (${size.length} articoli, ${postMixProducts.length} post-mix)`;
         build();
       }).catch(err => {
@@ -321,165 +239,80 @@ localStorage.setItem(
       });
     });
   }
+
   if ($("search")) {
     $("search").addEventListener("input", render);
   }
 });
 
 function updateNetSales(val) {
-
-    netSales = n(val);
-
-    localStorage.setItem(
-        "net_sales_" + cinemaName,
-        netSales
-    );
-
-    renderShrinkageView();
+  netSales = n(val);
+  localStorage.setItem("net_sales_" + cinemaName, netSales);
+  renderShrinkageView();
 }
 
 function renderShrinkageView() {
-
   const tbody = $("tbody");
   const thead = $("thead");
-
   if (!tbody || !thead) return;
 
   let totaleDiffValore = 0;
   let totaleDanni = 0;
 
   rows.forEach(r => {
-
     const atteso = n(r.atteso);
-
-    const rilevato =
-      getGlobalRilevato(r.code, r);
-
-    totaleDiffValore +=
-      (rilevato - atteso) *
-      n(r.standardCost);
-
-    totaleDanni +=
-      n(r.danni) *
-      n(r.standardCost);
-
+    const rilevato = getGlobalRilevato(r.code, r);
+    totaleDiffValore += (rilevato - atteso) * n(r.standardCost);
+    totaleDanni += n(r.danni) * n(r.standardCost);
   });
 
-  const shrinkageValore =
-    totaleDiffValore + totaleDanni;
-
-  const diffPerc =
-    netSales > 0
-      ? (totaleDiffValore / netSales) * 100
-      : 0;
-
-  const danniPerc =
-    netSales > 0
-      ? (totaleDanni / netSales) * 100
-      : 0;
-
-  const shrinkagePerc =
-    netSales > 0
-      ? (shrinkageValore / netSales) * 100
-      : 0;
+  const shrinkageValore = totaleDiffValore + totaleDanni;
+  const diffPerc = netSales > 0 ? (totaleDiffValore / netSales) * 100 : 0;
+  const danniPerc = netSales > 0 ? (totaleDanni / netSales) * 100 : 0;
+  const shrinkagePerc = netSales > 0 ? (shrinkageValore / netSales) * 100 : 0;
 
   thead.innerHTML = `
     <tr>
-      <th colspan="3"
-          style="background:#c62828;color:white;padding:12px;">
-          📉 SHRINKAGE
-      </th>
+      <th colspan="3" style="background:#c62828;color:white;padding:12px;">📉 SHRINKAGE</th>
     </tr>
   `;
 
   tbody.innerHTML = `
     <tr>
       <td colspan="3" style="padding:25px">
-
-        <div style="
-          max-width:700px;
-          margin:auto;
-          border:2px solid #444;
-          background:white;
-          padding:20px">
-
+        <div style="max-width:700px; margin:auto; border:2px solid #444; background:white; padding:20px">
           <h2>${cinemaName}</h2>
-
-          <p>
-            Data:
-            ${new Date().toLocaleDateString("it-IT")}
-          </p>
-
-          <table style="
-            width:100%;
-            border-collapse:collapse">
-
+          <p>Data: ${new Date().toLocaleDateString("it-IT")}</p>
+          <table style="width:100%; border-collapse:collapse">
             <tr>
               <th>Voce</th>
               <th>Valore</th>
               <th>%</th>
             </tr>
-
             <tr>
               <td>Tot. Netto Venduto</td>
-
               <td>
-                <input
-                  type="number"
-                  value="${netSales}"
-                  onchange="updateNetSales(this.value)"
-                  style="
-                    width:100%;
-                    padding:6px">
+                <input type="number" value="${netSales}" onchange="updateNetSales(this.value)" style="width:100%; padding:6px">
               </td>
-
               <td>-</td>
             </tr>
-
             <tr>
               <td>Differenza Valore Totale</td>
-
-              <td>
-                € ${fmtMoney(totaleDiffValore)}
-              </td>
-
-              <td>
-                ${diffPerc.toFixed(2)}%
-              </td>
+              <td>€ ${fmtMoney(totaleDiffValore)}</td>
+              <td>${diffPerc.toFixed(2)}%</td>
             </tr>
-
             <tr>
               <td>Danni</td>
-
-              <td>
-                € ${fmtMoney(totaleDanni)}
-              </td>
-
-              <td>
-                ${danniPerc.toFixed(2)}%
-              </td>
+              <td>€ ${fmtMoney(totaleDanni)}</td>
+              <td>${danniPerc.toFixed(2)}%</td>
             </tr>
-
-            <tr style="
-              background:#ffebee;
-              font-weight:bold">
-
+            <tr style="background:#ffebee; font-weight:bold">
               <td>SHRINKAGE</td>
-
-              <td>
-                € ${fmtMoney(shrinkageValore)}
-              </td>
-
-              <td>
-                ${shrinkagePerc.toFixed(2)}%
-              </td>
-
+              <td>€ ${fmtMoney(shrinkageValore)}</td>
+              <td>${shrinkagePerc.toFixed(2)}%</td>
             </tr>
-
           </table>
-
         </div>
-
       </td>
     </tr>
   `;
@@ -492,11 +325,11 @@ function renderCandyView() {
   if (!container || !thead) return;
   const cfg = getActiveCinemaCandyConfig();
   if (!cfg.orientation) cfg.orientation = 'vertical';
-  
+
   thead.innerHTML = `<tr><th colspan="10" style="background:#d35400; color:white; font-size:1.1rem; padding:10px;">🍬 Gestione Inserimento Caramelle (${esc(cinemaName)})</th></tr>`;
-  
+
   let html = `<tr><td colspan="10" style="padding:20px; background:#fff3e0;">`;
-  
+
   const totalKg = typeof getCandyTotalKg === 'function' ? getCandyTotalKg() : 0;
   html += `
     <div style="display:flex; flex-direction:column; gap:15px; margin-bottom:20px; background:white; padding:15px; border-radius:8px; border:1px solid #ffe0b2;">
@@ -510,12 +343,11 @@ function renderCandyView() {
         ${[0,1,2,3].map(i => `
           <div style="display:flex; align-items:center; gap:4px;">
             <span style="font-size:0.75rem; color:#666;">T${i+1}:</span>
-            <input type="number" step="any" value="${cfg.tares?.[i] !== undefined ? cfg.tares[i] : ''}" placeholder="0.00" 
-              style="width:70px; padding:4px; text-align:center; font-size:0.85rem; border:1px solid #ccc; border-radius:4px;"
-              oninput="updateCandyTareInput(${i}, this.value)">
+            <input type="number" step="any" value="${cfg.tares?.[i] !== undefined ? cfg.tares[i] : ''}" placeholder="0.00" style="width:70px; padding:4px; text-align:center; font-size:0.85rem; border:1px solid #ccc; border-radius:4px;" oninput="updateCandyTareInput(${i}, this.value)">
           </div>
         `).join('')}
       </div>
+
       <!-- Menù Blocchi e Orientamento -->
       <div style="display:flex; gap:20px; align-items:center; flex-wrap:wrap; border-top:1px solid #eee; padding-top:10px;">
         <div style="display:flex; align-items:center; gap:8px;">
@@ -564,8 +396,10 @@ function renderCandyView() {
                   </div>
                 </div>
               </div>`;
+
     let gridStyle = '';
     let cellOrder = [];
+
     if (cfg.orientation === 'horizontal') {
       gridStyle = `display: grid; grid-template-columns: repeat(${b.columns}, minmax(110px, 1fr)); gap: 8px; margin-top: 8px; overflow-x: auto; padding-bottom: 5px;`;
       for (let r = 0; r < b.rows; r++) {
@@ -583,11 +417,14 @@ function renderCandyView() {
         }
       }
     }
+
     html += `<div style="${gridStyle}">`;
+
     cellOrder.forEach(({ r, c, num }) => {
       let cell = b.gridValues?.[r]?.[c] || { weight: "", taraIdx: 0 };
       let selectedTaraIdx = cell.taraIdx !== undefined ? cell.taraIdx : 0;
       let badgeBg = cfg.orientation === 'vertical' ? '#e67e22' : '#7f8c8d';
+
       html += `
         <div style="border:1px solid #ddd; padding:6px; text-align:center; background:white; border-radius:6px; display:flex; flex-direction:column; gap:4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
           <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -597,8 +434,7 @@ function renderCandyView() {
           <select style="font-size:0.75rem; padding:2px; border:1px solid #ccc; border-radius:3px; background:white;" onchange="updateCandyCellTara(${bIdx}, ${r}, ${c}, this.value)">
             ${cfg.tares.map((tVal, tIdx) => `<option value="${tIdx}" ${selectedTaraIdx === tIdx ? 'selected' : ''}>Tara: ${tVal}kg</option>`).join('')}
           </select>
-          <input type="number" step="any" placeholder="Kg" value="${cell.weight || ''}" style="width:100%; font-size:0.85rem; text-align:center; padding:3px; border:1px solid #bbb; border-radius:4px;" 
-            oninput="updateCandyCellWeight(${bIdx}, ${r}, ${c}, this.value)">
+          <input type="number" step="any" placeholder="Kg" value="${cell.weight || ''}" style="width:100%; font-size:0.85rem; text-align:center; padding:3px; border:1px solid #bbb; border-radius:4px;" oninput="updateCandyCellWeight(${bIdx}, ${r}, ${c}, this.value)">
         </div>`;
     });
     html += `</div></div>`;
@@ -690,7 +526,7 @@ function updateCandyCellWeight(bIdx, r, c, val) {
   if (!cfg.blocks[bIdx].gridValues) cfg.blocks[bIdx].gridValues = {};
   if (!cfg.blocks[bIdx].gridValues[r]) cfg.blocks[bIdx].gridValues[r] = {};
   if (!cfg.blocks[bIdx].gridValues[r][c]) cfg.blocks[bIdx].gridValues[r][c] = { weight: "", taraIdx: 0 };
-  
+
   cfg.blocks[bIdx].gridValues[r][c].weight = val;
   saveCandyConfig();
   updateCandyTotalUI();
@@ -701,7 +537,7 @@ function updateCandyCellTara(bIdx, r, c, taraIdx) {
   if (!cfg.blocks[bIdx].gridValues) cfg.blocks[bIdx].gridValues = {};
   if (!cfg.blocks[bIdx].gridValues[r]) cfg.blocks[bIdx].gridValues[r] = {};
   if (!cfg.blocks[bIdx].gridValues[r][c]) cfg.blocks[bIdx].gridValues[r][c] = { weight: "", taraIdx: 0 };
-  
+
   cfg.blocks[bIdx].gridValues[r][c].taraIdx = parseInt(taraIdx) || 0;
   saveCandyConfig();
   updateCandyTotalUI();
@@ -728,7 +564,7 @@ function renderPostMixView() {
   const container = $("tbody");
   const thead = $("thead");
   if (!container || !thead) return;
-  
+
   const cfg = getActiveCinemaPostMixConfig();
   if (!cfg.orientation) cfg.orientation = 'vertical';
 
@@ -841,19 +677,16 @@ function renderPostMixView() {
             <span style="font-size:0.75rem; font-weight:bold; background:${badgeBg}; color:white; padding:1px 5px; border-radius:3px;">N° ${num}</span>
             <span style="font-size:0.65rem; color:#888;">R${r+1}-C${c+1}</span>
           </div>
-          <select style="font-size:0.75rem; padding:2px; border:1px solid #ccc; border-radius:3px; background:white;" 
-                  onchange="updatePostMixCell(${bIdx}, ${r}, ${c}, this.value, null)">
+          <select style="font-size:0.75rem; padding:2px; border:1px solid #ccc; border-radius:3px; background:white;" onchange="updatePostMixCell(${bIdx}, ${r}, ${c}, this.value, null)">
             <option value="">-- Prodotto --</option>
             ${postMixProducts.map(p => `<option value="${esc(p.name)}" ${cell.prodName === p.name ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
           </select>
-          <input type="number" step="any" placeholder="Kg Lordi" value="${cell.weight || ''}" 
-                 style="width:100%; font-size:0.85rem; text-align:center; padding:3px; border:1px solid #bbb; border-radius:4px;" 
-                 oninput="updatePostMixCell(${bIdx}, ${r}, ${c}, null, this.value)">
+          <input type="number" step="any" placeholder="Kg Lordi" value="${cell.weight || ''}" style="width:100%; font-size:0.85rem; text-align:center; padding:3px; border:1px solid #bbb; border-radius:4px;">
         </div>`;
     });
-
     html += `</div></div>`;
   });
+}
 
   html += `</div></td></tr>`;
   container.innerHTML = html;
