@@ -24,6 +24,7 @@ JSON.parse(
   localStorage.getItem("hidden_products")
 ) || {};
 let showHiddenMode = false;
+let reportSectionExpanded = JSON.parse(localStorage.getItem("report_section_expanded") || "false");
 const MAX_FIELDS = 10;
 const DEFAULT_CINEMAS = [
   "TSC Beinasco", "TSC Belpasso", "TSC Bologna", "TSC Casamassima", "TSC Catanzaro",
