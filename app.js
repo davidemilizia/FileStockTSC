@@ -1771,8 +1771,7 @@ function loadSetupFromStorage() {
   if (savedCinema)
     cinemaName = savedCinema;
 
-  const savedWh =
-    localStorage.getItem("cinema_warehouses");
+const savedWh =localStorage.getItem("cinema_warehouses_" + cinemaName);
 
   if (savedWh) {
     try {
