@@ -2446,7 +2446,12 @@ function toggleProductSort() {
   render();
 }
 function toggleProductVisibility(code) {
-
+console.log(
+  "TAB",
+  currentTab,
+  "CODE",
+  code
+);
   const key =
     String(currentTab);
 
