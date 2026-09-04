@@ -681,17 +681,15 @@ function renderPostMixView() {
             <option value="">-- Prodotto --</option>
             ${postMixProducts.map(p => `<option value="${esc(p.name)}" ${cell.prodName === p.name ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
           </select>
-          <input type="number" step="any" placeholder="Kg Lordi" value="${cell.weight || ''}" style="width:100%; font-size:0.85rem; text-align:center; padding:3px; border:1px solid #bbb; border-radius:4px;">
+          <input type="number" step="any" placeholder="Kg Lordi" value="${cell.weight || ''}" style="width:100%; font-size:0.85rem; text-align:center; padding:3px; border:1px solid #bbb; border-radius:4px;" oninput="updatePostMixCell(${bIdx}, ${r}, ${c}, null, this.value)">
         </div>`;
     });
     html += `</div></div>`;
   });
-}
 
   html += `</div></td></tr>`;
   container.innerHTML = html;
 }
-
 function updatePostMixCell(bIdx, r, c, prodName, weight) {
   const cfg = getActiveCinemaPostMixConfig();
   if (!cfg.blocks[bIdx].gridValues) cfg.blocks[bIdx].gridValues = {};
