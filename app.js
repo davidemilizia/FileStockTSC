@@ -1952,7 +1952,8 @@ warehouseProducts[val] =
   if (newWh.length === 0) { alert("Inserisci almeno un magazzino!"); return; }
   
   warehouses = newWh;
-  localStorage.setItem("cinema_warehouses", JSON.stringify(warehouses));
+  localStorage.setItem( "cinema_warehouses_" + cinemaName,JSON.stringify(warehouses));
+
  localStorage.setItem(
   "warehouse_types_" + cinemaName,
   JSON.stringify(warehouseTypes)
