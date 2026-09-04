@@ -2513,6 +2513,43 @@ function toggleProductSort() {
       : "az";
   render();
 }
+function toggleReportColumns() {
+
+  reportSectionExpanded =
+    !reportSectionExpanded;
+
+  localStorage.setItem(
+    "report_section_expanded",
+    JSON.stringify(
+      reportSectionExpanded
+    )
+  );
+
+  document
+    .querySelectorAll(".report-mag-col")
+    .forEach(el => {
+
+      el.style.display =
+        reportSectionExpanded
+          ? ""
+          : "none";
+
+    });
+
+  const btn =
+    document.getElementById(
+      "reportToggleBtn"
+    );
+
+  if (btn) {
+
+    btn.textContent =
+      reportSectionExpanded
+        ? "➖ REPORT MAGAZZINO"
+        : "➕ REPORT MAGAZZINO";
+
+  }
+}
 function toggleProductVisibility(code) {
 console.log(
   "TAB",
