@@ -2613,9 +2613,15 @@ ${reportSectionExpanded
   Prodotto ↕
 </th>
         <th>U.M.</th>
-        <th>Iniziale</th>
-        <th>Danni</th>
-        <th>Venduto</th>
+   ${
+reportSectionExpanded
+? `
+<th>Iniziale</th>
+<th>Danni</th>
+<th>Venduto</th>
+`
+: ``
+}
         <th class="grp-box">Size</th>
         <th class="grp-box">Q.tà</th>
         <th class="grp-sleeve">Size</th>
