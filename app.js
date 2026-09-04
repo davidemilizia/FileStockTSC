@@ -2259,7 +2259,7 @@ function parseMag(m) {
     const code = cleanCode(rawCode);
     const iniziale = n(r[5]);
     const danni = n(r[14]);
-    const venduto = n(r[18]) + n(r[20]);
+    const venduto = n(r[18]) + n(r[21]);
     let atteso = n(r[23]);
     if (atteso === 0 && (iniziale > 0 || venduto > 0)) atteso = iniziale - danni - venduto;
     const standardCost = Math.abs(n(r[29] || r[32] || 0));
