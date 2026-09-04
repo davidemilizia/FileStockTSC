@@ -2513,6 +2513,27 @@ function toggleProductSort() {
       : "az";
   render();
 }
+function showHistoricalData(code = null) {
+
+  const r =
+    rows.find(x => x.code === code);
+
+  if (!r) return;
+
+  alert(
+`PRODOTTO: ${r.name}
+
+INIZIALE: ${fmt(r.iniziale)}
+
+DANNI: ${fmt(r.danni)}
+
+VENDUTO: ${fmt(r.venduto)}
+
+ATTESO: ${fmt(r.atteso)}
+
+COSTO UNITARIO: € ${fmtMoney(r.standardCost)}`
+  );
+}
 function toggleProductVisibility(code) {
 console.log(
   "TAB",
