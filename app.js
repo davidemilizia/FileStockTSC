@@ -295,6 +295,15 @@ document.addEventListener("DOMContentLoaded", () => {
         let parsedSizeResult = parseSize(m);
         size = parsedSizeResult.size;
         postMixProducts = parsedSizeResult.postMix;
+         localStorage.setItem(
+  "size_data_" + cinemaName,
+  JSON.stringify(size)
+);
+
+localStorage.setItem(
+  "postmix_data_" + cinemaName,
+  JSON.stringify(postMixProducts)
+);
         if ($("sizeStatus")) $("sizeStatus").textContent = `✓ ${f.name} (${size.length} articoli, ${postMixProducts.length} post-mix)`;
         build();
       }).catch(err => {
