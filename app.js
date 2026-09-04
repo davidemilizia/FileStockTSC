@@ -2625,7 +2625,25 @@ if (productSortDirection === "az") {
     $("thead").innerHTML = `
       <tr style="position: sticky; top: 0; z-index: 20; background: #212529;">
         <th colspan="2" style="background: #212529; color: white;">PRODOTTO</th>
-        <th colspan="3" style="background: #343a40; color: white;">REPORT MAGAZZINO</th>
+        <th colspan="3"
+    style="background:#343a40;color:white;">
+
+  <span
+    id="reportToggleBtn"
+    onclick="toggleReportColumns()"
+    style="
+      cursor:pointer;
+      user-select:none;">
+
+    ${
+      reportSectionExpanded
+        ? "➖ REPORT MAGAZZINO"
+        : "➕ REPORT MAGAZZINO"
+    }
+
+  </span>
+
+</th>
         <th colspan="2" class="grp-box" style="background: #e3f2fd; color: #0d47a1;">BOX</th>
         <th colspan="2" class="grp-sleeve" style="background: #f3e5f5; color: #4a148c;">SLEEVE</th>
         <th class="grp-sfuso" style="background: #fff9c4; color: #f57f17;">SFUSO</th>
