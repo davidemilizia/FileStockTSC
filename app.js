@@ -2285,7 +2285,7 @@ function parseSize(m) {
 
     const firstVal = text(r[0]);
     const normFirst = norm(firstVal);
-
+if (normFirst.includes("TIPOLOGIA")) console.log("TROVATO TIPOLOGIA", r);
     if (
       normFirst === "KIT" ||
       norm(r[1]) === "TIPO" ||
