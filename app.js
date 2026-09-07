@@ -208,6 +208,7 @@ function getPostMixProductTotals() {
             let weight = n(cellData.weight || 0);
             let prodName = cellData.prodName;
             let pmItem = postMixProducts.find(p => p.name === prodName);
+             console.log(prodName, pmItem);
             let netKg = pmItem ? (((weight - pmItem.emptyWeight) / (pmItem.fullWeight - pmItem.emptyWeight)) * pmItem.declaredWeight) : 0;
             netKg = Math.max(0, netKg);
             totals[prodName] = (totals[prodName] || 0) + netKg;
