@@ -2833,9 +2833,38 @@ ${esc(r.code)}
     `;
   });
   
-  tbody.innerHTML = html;
-  if (typeof recalcKPIs === 'function') recalcKPIs();
+tbody.innerHTML = html;
+
+if (window.lastAddedCount) {
+
+  const field = document.querySelector(
+    '.count-input[data-code="' +
+    window.lastAddedCount.code +
+    '"][data-type="' +
+    window.lastAddedCount.type +
+    '"][data-index="' +
+    window.lastAddedCount.index +
+    '"]'
+  );
+
+  if (field) {
+
+    setTimeout(() => {
+
+      field.focus();
+      field.select();
+
+    }, 10);
+
+  }
+
+  window.lastAddedCount = null;
+
 }
+
+if (typeof recalcKPIs === 'function')
+  recalcKPIs();
+
 
 function modifyCountValue(widx, code, type, idx, val) {
   if (typeof updateCount === 'function') {
