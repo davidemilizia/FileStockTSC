@@ -2836,24 +2836,7 @@ ${esc(r.code)}
   tbody.innerHTML = html;
   if (typeof recalcKPIs === 'function') recalcKPIs();
 }
-if (window.lastAddedCount) {
 
-  const selector =
-    `.count-input[data-code="${window.lastAddedCount.code}"][data-type="${window.lastAddedCount.type}"][data-index="${window.lastAddedCount.index}"]`;
-
-  const field =
-    document.querySelector(selector);
-
-  if (field) {
-
-    field.focus();
-    field.select();
-
-  }
-
-  window.lastAddedCount = null;
-
-}
 function modifyCountValue(widx, code, type, idx, val) {
   if (typeof updateCount === 'function') {
     updateCount(widx, code, type, idx, val);
