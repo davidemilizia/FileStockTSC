@@ -2510,13 +2510,13 @@ document.addEventListener("keydown", function(e) {
   if (e.key !== "Tab")
     return;
 
-  const target = e.target;
+  const current = document.activeElement;
 
   if (
-    !target ||
+    !current ||
     (
-      !target.classList.contains("count-input") &&
-      !target.classList.contains("count-add-btn")
+      !current.classList.contains("count-input") &&
+      !current.classList.contains("count-add-btn")
     )
   ) {
     return;
@@ -2524,28 +2524,28 @@ document.addEventListener("keydown", function(e) {
 
   e.preventDefault();
 
-  const elements = Array.from(
+  const fields = Array.from(
     document.querySelectorAll(
       ".count-input, .count-add-btn"
     )
   );
 
-  const currentIndex =
-    elements.indexOf(target);
+  const idx = fields.indexOf(current);
 
-  const next =
-    elements[currentIndex + 1];
+  if (idx < 0)
+    return;
 
-  if (next) {
+  const next = fields[idx + 1];
 
-    next.focus();
+  if (!next)
+    return;
 
-    if (
-      next.classList.contains("count-input")
-    ) {
-      next.select();
-    }
+  next.focus();
 
+  if (
+    next.classList.contains("count-input")
+  ) {
+    next.select();
   }
 
 });
