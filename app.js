@@ -2864,7 +2864,7 @@ if (window.lastAddedCount) {
 
 if (typeof recalcKPIs === 'function')
   recalcKPIs();
-
+}
 
 function modifyCountValue(widx, code, type, idx, val) {
   if (typeof updateCount === 'function') {
