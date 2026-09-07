@@ -2211,6 +2211,7 @@ function readMatrix(file) {
         if (!wb.SheetNames || !wb.SheetNames.length) throw new Error("Nessun foglio trovato.");
         let combinedMatrix = [];
         wb.SheetNames.forEach(sheetName => {
+           wb.SheetNames.forEach(sheetName => {
           const sheetData = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: "", raw: true });
           if (sheetData && sheetData.length > 0) combinedMatrix = combinedMatrix.concat(sheetData);
         });
