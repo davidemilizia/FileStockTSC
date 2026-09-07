@@ -2526,6 +2526,50 @@ for (let [dName, dVal] of Object.entries(distTotals)) {
 }
   return basePezzi + getKitContributionDetail(r.name, r.code);
 }
+document.addEventListener("keydown", function(e) {
+
+  if (e.key !== "Enter") return;
+
+  if (
+    !e.target ||
+    !e.target.classList.contains("count-input")
+  ) {
+    return;
+  }
+
+  e.preventDefault();
+
+  const inputs =
+    Array.from(
+      document.querySelectorAll(".count-input")
+    );
+
+  const currentIndex =
+    inputs.indexOf(e.target);
+
+  for (
+    let i = currentIndex + 1;
+    i < inputs.length;
+    i++
+  ) {
+
+    const value =
+      String(inputs[i].value || "").trim();
+
+    if (
+      value === "" ||
+      value === "0"
+    ) {
+
+      inputs[i].focus();
+      inputs[i].select();
+      return;
+
+    }
+
+  }
+
+});
 function toggleProductSort() {
 
   productSortDirection =
@@ -2714,7 +2758,7 @@ cursor:pointer;">
       const buildCellInputs = (type, arr) => {
         let itemsStr = arr.map((val, idx) => `
           <div style="display:flex; align-items:center; gap:2px;">
-            <input type="number" value="${val}" style="width:70px; text-align:center; padding:2px; font-size:0.85rem;" 
+            <input class="count-input" type="number" value="${val}" style="width:70px; text-align:center; padding:2px; font-size:0.85rem;" 
                    oninput="modifyCountValue(${currentTab}, '${r.code}', '${type}', ${idx}, this.value)">
             ${arr.length > 1 ? `<button type="button" onclick="removeCountBox(${currentTab}, '${r.code}', '${type}', ${idx})" style="background:transparent; border:none; color:#dc3545; cursor:pointer; font-weight:bold; font-size:0.85rem; padding:0; line-height:1;" title="Rimuovi">×</button>` : ''}
           </div>
