@@ -2505,6 +2505,50 @@ for (let [dName, dVal] of Object.entries(distTotals)) {
 }
   return basePezzi + getKitContributionDetail(r.name, r.code);
 }
+document.addEventListener("keydown", function(e) {
+
+  if (e.key !== "Tab")
+    return;
+
+  const target = e.target;
+
+  if (
+    !target ||
+    (
+      !target.classList.contains("count-input") &&
+      !target.classList.contains("count-add-btn")
+    )
+  ) {
+    return;
+  }
+
+  e.preventDefault();
+
+  const elements = Array.from(
+    document.querySelectorAll(
+      ".count-input, .count-add-btn"
+    )
+  );
+
+  const currentIndex =
+    elements.indexOf(target);
+
+  const next =
+    elements[currentIndex + 1];
+
+  if (next) {
+
+    next.focus();
+
+    if (
+      next.classList.contains("count-input")
+    ) {
+      next.select();
+    }
+
+  }
+
+});
 function toggleProductSort() {
 
   productSortDirection =
