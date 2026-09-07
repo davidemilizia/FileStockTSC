@@ -2850,12 +2850,42 @@ function modifyCountValue(widx, code, type, idx, val) {
 }
 
 function addCountBox(widx, code, type) {
+
+  window.lastAddedField = {
+    widx,
+    code,
+    type
+  };
+
   const c = getCount(widx, code);
+
   if (!c[type]) c[type] = [];
+
   c[type].push(0);
-  if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-  else if (typeof save === 'function') save();
+
+  if (typeof saveToLocalStorage === 'function')
+    saveToLocalStorage();
+  else if (typeof save === 'function')
+    save();
+
   render();
+
+  setTimeout(() => {
+
+    const inputs = document.querySelectorAll(".count-input");
+
+    if (inputs.length > 0) {
+
+      const lastInput =
+        inputs[inputs.length - 1];
+
+      lastInput.focus();
+      lastInput.select();
+
+    }
+
+  }, 50);
+
 }
 
 function removeCountBox(widx, code, type, idx) {
