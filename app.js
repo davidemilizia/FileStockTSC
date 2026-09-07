@@ -2773,6 +2773,7 @@ sfusoHtml = buildCellInputs('sfuso', c.sfuso);
 
 <button
 type="button"
+tabindex="-1"
 onclick="toggleProductVisibility('${r.code}')"
 title="Nascondi prodotto"
 style="
