@@ -2807,6 +2807,7 @@ ${esc(r.code)}
         <td>
   <button
     type="button"
+    tabindex="-1"
     onclick="showHistoricalData('${r.code}')"
     title="Dati Historical">
     📜
