@@ -2681,12 +2681,6 @@ COSTO UNITARIO: € ${fmtMoney(r.standardCost)}`
   );
 }
 function toggleProductVisibility(code) {
-console.log(
-  "TAB",
-  currentTab,
-  "CODE",
-  code
-);
   const key =
     String(currentTab);
 
