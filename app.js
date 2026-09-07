@@ -2579,23 +2579,29 @@ document.addEventListener("keydown", function(e) {
 
   if (e.key === "Tab") {
 
-    const currentIndex =
-      elements.indexOf(document.activeElement);
+  const elements = Array.from(
+    document.querySelectorAll(
+      ".count-input, .count-add-btn"
+    )
+  );
 
-    if (currentIndex >= 0) {
+  const currentIndex =
+    elements.indexOf(document.activeElement);
 
-      e.preventDefault();
+  if (currentIndex >= 0) {
 
-      const next =
-        elements[currentIndex + 1];
+    e.preventDefault();
 
-      if (next) {
-        next.focus();
-      }
+    const next =
+      elements[currentIndex + 1];
 
+    if (next) {
+      next.focus();
     }
 
   }
+
+}
 
   if (
     e.key === "Enter" &&
