@@ -2271,38 +2271,100 @@ function parseMag(m) {
 }
 
 function parseSize(m) {
+
   const sizeOut = [];
   const postMixOut = [];
-  let section = "SIZE"; 
+
+  let section = "SIZE";
+
   for (let i = 0; i < m.length; i++) {
+
     const r = m[i];
+
     if (!r || !r.length) continue;
+
     const firstVal = text(r[0]);
     const normFirst = norm(firstVal);
-    if (normFirst === "KIT" || norm(r[1]) === "TIPO" || (normFirst === "" && norm(r[1]) === "TIPO")) {
+
+    if (
+      normFirst === "KIT" ||
+      norm(r[1]) === "TIPO" ||
+      (normFirst === "" && norm(r[1]) === "TIPO")
+    ) {
       section = "KIT";
       continue;
     }
-if (normFirst === "POSTMIX" || normFirst === "POST MIX" || norm(r[1]) === "TARA" || norm(r[2]) === "TARA") { section = "POSTMIX"; continue; }    if (section === "KIT") {
+
+    if (
+      normFirst === "POSTMIX" ||
+      normFirst === "POST MIX" ||
+      norm(r[1]) === "TARA" ||
+      norm(r[2]) === "TARA"
+    ) {
+      section = "POSTMIX";
+      continue;
+    }
+
+    if (section === "KIT") {
+
       const kitName = firstVal;
-      const kitType = text(r[1]); 
-      if (!kitName || normFirst === "PRODOTTO" || normFirst === "KIT") continue;
+      const kitType = text(r[1]);
+
+      if (
+        !kitName ||
+        normFirst === "PRODOTTO" ||
+        normFirst === "KIT"
+      ) continue;
+
       const ingredients = [];
       let currentIngName = "";
+
       for (let c = 2; c < r.length; c++) {
+
         const val = r[c];
-        if (val === null || val === undefined || String(val).trim() === "") continue;
+
+        if (
+          val === null ||
+          val === undefined ||
+          String(val).trim() === ""
+        ) continue;
+
         const numericVal = Number(val);
-        if (!isNaN(numericVal) && typeof val !== "string" && !isNaN(parseFloat(val))) {
-          if (currentIngName && numericVal > 0) {
-            ingredients.push({ name: currentIngName, qty: numericVal });
-            currentIngName = ""; 
+
+        if (
+          !isNaN(numericVal) &&
+          typeof val !== "string"
+        ) {
+
+          if (
+            currentIngName &&
+            numericVal > 0
+          ) {
+
+            ingredients.push({
+              name: currentIngName,
+              qty: numericVal
+            });
+
+            currentIngName = "";
+
           }
+
         } else {
+
           const textVal = text(val);
-          if (norm(textVal) !== "PRODOTTO" && norm(textVal) !== "Q.TA") currentIngName = textVal;
+
+          if (
+            norm(textVal) !== "PRODOTTO" &&
+            norm(textVal) !== "Q.TA"
+          ) {
+            currentIngName = textVal;
+          }
+
         }
+
       }
+
       sizeOut.push({
         code: "KIT_" + cleanCode(kitName),
         name: kitName,
@@ -2312,32 +2374,60 @@ if (normFirst === "POSTMIX" || normFirst === "POST MIX" || norm(r[1]) === "TARA"
         kitType,
         ingredients
       });
-   } else if (section === "POSTMIX") {
 
-  const prodName = firstVal;
+    }
 
-  if (!prodName)
-    continue;
+    else if (section === "POSTMIX") {
 
-  postMixOut.push({
+      const prodName = firstVal;
 
-    name: prodName,
+      if (
+        !prodName ||
+        normFirst.includes("TIPOLOGIA") ||
+        normFirst.includes("PESO")
+      ) continue;
 
-    declaredWeight:
-      n(r[1]),
+      postMixOut.push({
+        name: prodName,
+        declaredWeight: n(r[1]),
+        fullWeight: n(r[2]),
+        emptyWeight: n(r[3])
+      });
 
-    fullWeight:
-      n(r[2]),
+    }
 
-    emptyWeight:
-      n(r[3])
+    else {
 
-  });
+      const name = firstVal;
+      const normName = norm(name);
 
-}
-  }
-  return { size: sizeOut, postMix: postMixOut };
-}
+      if (
+        !name ||
+        name === "#N/D" ||
+        normName.includes("PRODOTTO") ||
+        normName.includes("DESCRIZIONE")
+      ) continue;
+
+      const boxSize = n(r[1]);
+      const sleeveSize = n(r[2]);
+
+      let primaryCode = "";
+
+      for (let c = 4; c < r.length; c++) {
+
+        const valStr = text(r[c]);
+
+        if (valStr && !primaryCode) {
+
+          primaryCode = cleanCode(valStr);
+          break;
+
+        }
+
+      }
+
+      if (!primaryCode)
+        primaryCode = cleanCode(
 
 function build() {
   if (!mag.length || !size.length) {
