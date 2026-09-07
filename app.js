@@ -2764,8 +2764,7 @@ cursor:pointer;">
           </div>
         `).join('');
 
-        let addBtn = `<button type="button" onclick="addCountBox(${currentTab}, '${r.code}', '${type}')" style="background:transparent; border:1px solid #ced4da; color:#495057; border-radius:3px; padding:1px 6px; cursor:pointer; font-size:0.75rem; height:24px;" title="Aggiungi">+</button>`;
-
+let addBtn = `<button type="button" class="count-add-btn" onclick="addCountBox(${currentTab}, '${r.code}', '${type}')" style="background:transparent; border:1px solid #ced4da; color:#495057; border-radius:3px; padding:1px 6px; cursor:pointer; font-size:0.75rem; height:24px;" title="Aggiungi">+</button>`;
 return `<div style="
 display:flex;
 flex-wrap:wrap;
