@@ -2570,6 +2570,63 @@ document.addEventListener("keydown", function(e) {
   }
 
 });
+document.addEventListener("keydown", function(e) {
+
+  const elements = [
+    ...document.querySelectorAll(".count-input"),
+    ...document.querySelectorAll(".count-add-btn")
+  ];
+
+  if (e.key === "Tab") {
+
+    const currentIndex =
+      elements.indexOf(document.activeElement);
+
+    if (currentIndex >= 0) {
+
+      e.preventDefault();
+
+      const next =
+        elements[currentIndex + 1];
+
+      if (next) {
+        next.focus();
+      }
+
+    }
+
+  }
+
+  if (
+    e.key === "Enter" &&
+    e.target &&
+    e.target.classList.contains("count-add-btn")
+  ) {
+
+    e.preventDefault();
+
+    const oldInputs =
+      document.querySelectorAll(".count-input").length;
+
+    e.target.click();
+
+    setTimeout(() => {
+
+      const inputs =
+        document.querySelectorAll(".count-input");
+
+      if (inputs.length > oldInputs) {
+
+        inputs[inputs.length - 2].focus();
+        inputs[inputs.length - 2].select();
+
+      }
+
+    }, 50);
+
+  }
+
+});
 function toggleProductSort() {
 
   productSortDirection =
