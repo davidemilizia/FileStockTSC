@@ -208,7 +208,6 @@ function getPostMixProductTotals() {
             let weight = n(cellData.weight || 0);
             let prodName = cellData.prodName;
             let pmItem = postMixProducts.find(p => p.name === prodName);
-             console.log(prodName, pmItem);
             let netKg = pmItem ? (((weight - pmItem.emptyWeight) / (pmItem.fullWeight - pmItem.emptyWeight)) * pmItem.declaredWeight) : 0;
             netKg = Math.max(0, netKg);
             totals[prodName] = (totals[prodName] || 0) + netKg;
@@ -958,7 +957,7 @@ function getAvailableProductsList() {
         prods.forEach(p => { if (p) productsSet.add(p.trim()); });
       }
     } catch (e) {
-      console.warn("getAllProducts non eseguibile:", e);
+
     }
   }
   if (window.globalProductsList && Array.isArray(window.globalProductsList)) {
@@ -2301,7 +2300,7 @@ if (normFirst.includes("TIPOLOGIA")) console.log("TROVATO TIPOLOGIA", r);
   normFirst.includes("TIPOLOGIA")
 ) {
   section = "POSTMIX";
-  console.log("ENTRO POSTMIX");
+
   continue;
 }
     if (section === "KIT") {
