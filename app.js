@@ -2315,33 +2315,29 @@ function parseSize(m) {
         kitType,
         ingredients
       });
-    } else if (section === "POSTMIX") {
-      const prodName = firstVal;
-      const taraVal = n(r[2] !== undefined && r[2] !== "" ? r[2] : r[1]);
-      if (!prodName || normFirst === "PRODOTTO" || normFirst === "TARA") continue;
-      postMixOut.push({ name: prodName, tara: taraVal });
-    } else {
-      const name = firstVal;
-      const normName = norm(name);
-      if (!name || name === "#N/D" || normName.includes("PRODOTTO") || normName.includes("DESCRIZIONE")) continue;
-      const boxSize = n(r[1]);
-      const sleeveSize = n(r[2]);
-      let primaryCode = "";
-      for (let c = 4; c < r.length; c++) {
-        const valStr = text(r[c]);
-        if (valStr && !primaryCode) { primaryCode = cleanCode(valStr); break; }
-      }
-      if (!primaryCode) primaryCode = cleanCode(name);
-      sizeOut.push({
-        code: primaryCode,
-        rawCode: primaryCode,
-        name,
-        boxSize,
-        sleeveSize,
-        isKit: false,
-        ingredients: []
-      });
-    }
+   } else if (section === "POSTMIX") {
+
+  const prodName = firstVal;
+
+  if (!prodName)
+    continue;
+
+  postMixOut.push({
+
+    name: prodName,
+
+    declaredWeight:
+      n(r[1]),
+
+    fullWeight:
+      n(r[2]),
+
+    emptyWeight:
+      n(r[3])
+
+  });
+
+}
   }
   return { size: sizeOut, postMix: postMixOut };
 }
