@@ -2426,8 +2426,29 @@ function parseSize(m) {
 
       }
 
-      if (!primaryCode)
-        primaryCode = cleanCode(
+           if (!primaryCode)
+        primaryCode = cleanCode(name);
+
+      sizeOut.push({
+        code: primaryCode,
+        rawCode: primaryCode,
+        name,
+        boxSize,
+        sleeveSize,
+        isKit: false,
+        ingredients: []
+      });
+
+    }
+
+  }
+
+  return {
+    size: sizeOut,
+    postMix: postMixOut
+  };
+
+}
 
 function build() {
   if (!mag.length || !size.length) {
