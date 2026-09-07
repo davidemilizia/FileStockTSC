@@ -2283,8 +2283,7 @@ function parseSize(m) {
       section = "KIT";
       continue;
     }
-  if (normFirst === "POSTMIX" || normFirst === "POST MIX" || normFirst === "TIPOLOGIA FUSTI") { section = "POSTMIX"; continue; }
-    if (section === "KIT") {
+if (normFirst === "POSTMIX" || normFirst === "POST MIX" || norm(r[1]) === "TARA" || norm(r[2]) === "TARA") { section = "POSTMIX"; continue; }    if (section === "KIT") {
       const kitName = firstVal;
       const kitType = text(r[1]); 
       if (!kitName || normFirst === "PRODOTTO" || normFirst === "KIT") continue;
