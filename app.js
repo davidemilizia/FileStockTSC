@@ -2851,15 +2851,17 @@ function modifyCountValue(widx, code, type, idx, val) {
 
 function addCountBox(widx, code, type) {
 
-  window.lastAddedField = {
-    widx,
-    code,
-    type
-  };
-
   const c = getCount(widx, code);
 
   if (!c[type]) c[type] = [];
+
+  const newIndex = c[type].length;
+
+  window.lastAddedCount = {
+    code,
+    type,
+    index: newIndex
+  };
 
   c[type].push(0);
 
@@ -2870,24 +2872,7 @@ function addCountBox(widx, code, type) {
 
   render();
 
-  setTimeout(() => {
-
-    const inputs = document.querySelectorAll(".count-input");
-
-    if (inputs.length > 0) {
-
-      const lastInput =
-        inputs[inputs.length - 1];
-
-      lastInput.focus();
-      lastInput.select();
-
-    }
-
-  }, 50);
-
 }
-
 function removeCountBox(widx, code, type, idx) {
   const c = getCount(widx, code);
   if (c && c[type] && c[type].length > 1) {
