@@ -2737,8 +2737,7 @@ cursor:pointer;">
       const buildCellInputs = (type, arr) => {
         let itemsStr = arr.map((val, idx) => `
           <div style="display:flex; align-items:center; gap:2px;">
-           <input class="count-input" data-code="${r.code}" data-type="${type}" data-index="${idx}" type="number" value="${val}"
-                   oninput="modifyCountValue(${currentTab}, '${r.code}', '${type}', ${idx}, this.value)">
+<input class="count-input" data-code="${r.code}" data-type="${type}" data-index="${idx}" type="number" value="${val}" style="width:70px; text-align:center; padding:2px; font-size:0.85rem;"                   oninput="modifyCountValue(${currentTab}, '${r.code}', '${type}', ${idx}, this.value)">
             ${arr.length > 1 ? `<button type="button" onclick="removeCountBox(${currentTab}, '${r.code}', '${type}', ${idx})" style="background:transparent; border:none; color:#dc3545; cursor:pointer; font-weight:bold; font-size:0.85rem; padding:0; line-height:1;" title="Rimuovi">×</button>` : ''}
           </div>
         `).join('');
