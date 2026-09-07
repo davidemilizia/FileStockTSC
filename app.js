@@ -2295,16 +2295,15 @@ if (normFirst.includes("TIPOLOGIA")) console.log("TROVATO TIPOLOGIA", r);
       continue;
     }
 
-    if (
-      normFirst === "POSTMIX" ||
-      normFirst === "POST MIX" ||
-      norm(r[1]) === "TARA" ||
-      norm(r[2]) === "TARA"
-    ) {
-      section = "POSTMIX";
-      continue;
-    }
-
+   if (
+  normFirst === "POSTMIX" ||
+  normFirst === "POST MIX" ||
+  normFirst.includes("TIPOLOGIA")
+) {
+  section = "POSTMIX";
+  console.log("ENTRO POSTMIX");
+  continue;
+}
     if (section === "KIT") {
 
       const kitName = firstVal;
