@@ -2481,12 +2481,13 @@ function parseMag(m) {
     const rawCode = text(r[1]).trim();
     const code = cleanCode(rawCode);
     const iniziale = n(r[5]);
+     const carichi = n(r[8]) + n(r[11]) + n(r[14]);
     const danni = n(r[14]);
     const venduto = n(r[18]) + n(r[19]);
     let atteso = n(r[23]);
     if (atteso === 0 && (iniziale > 0 || venduto > 0)) atteso = iniziale - danni - venduto;
     const standardCost = Math.abs(n(r[29] || r[32] || 0));
-    out.push({ rawCode, code, name, uom, iniziale, danni, venduto, atteso, standardCost });
+    out.push({ rawCode, code, name, uom, iniziale, carichi, danni, venduto, atteso, standardCost });
   }
   if (out.length === 0) throw new Error("Nessun prodotto trovato nel report Magazzino.");
   return out;
@@ -2888,10 +2889,12 @@ function showHistoricalData(code = null) {
 
   if (!r) return;
 
-  alert(
+ alert(
 `PRODOTTO: ${r.name}
 
 INIZIALE: ${fmt(r.iniziale)}
+
+CARICHI: ${fmt(r.carichi)}
 
 DANNI: ${fmt(r.danni)}
 
@@ -2900,7 +2903,7 @@ VENDUTO: ${fmt(r.venduto)}
 ATTESO: ${fmt(r.atteso)}
 
 COSTO UNITARIO: € ${fmtMoney(r.standardCost)}`
-  );
+);
 }
 function toggleProductVisibility(code) {
   const key =
