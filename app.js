@@ -1814,66 +1814,32 @@ function importCountsBackup(input) {
   reader.readAsText(file);
 
 }
-function importCountsBackup(input) {
+function exportCountsBackup() {
 
-  const file = input.files[0];
-
-  if (!file) return;
-
-  const reader = new FileReader();
-
-  reader.onload = e => {
-
-    const data =
-      JSON.parse(e.target.result);
-
-    countsData =
-      data.countsData || {};
-
-    candyGridConfigs =
-      data.candyGridConfigs || {};
-
-    postMixGridConfigs =
-      data.postMixGridConfigs || {};
-
-    distributorGridConfigs =
-      data.distributorGridConfigs || {};
-
-    hiddenProducts =
-      data.hiddenProducts || {};
-
-    localStorage.setItem(
-      "inventory_counts",
-      JSON.stringify(countsData)
-    );
-
-    localStorage.setItem(
-      "candy_grid_configs",
-      JSON.stringify(candyGridConfigs)
-    );
-
-    localStorage.setItem(
-      "postmix_grid_configs",
-      JSON.stringify(postMixGridConfigs)
-    );
-
-    localStorage.setItem(
-      "distributor_grid_configs",
-      JSON.stringify(distributorGridConfigs)
-    );
-
-    localStorage.setItem(
-      "hidden_products",
-      JSON.stringify(hiddenProducts)
-    );
-
-    render();
-
-    alert("Conteggi ripristinati");
-
+  const data = {
+    countsData,
+    candyGridConfigs,
+    postMixGridConfigs,
+    distributorGridConfigs,
+    hiddenProducts
   };
 
-  reader.readAsText(file);
+  const blob = new Blob(
+    [JSON.stringify(data, null, 2)],
+    { type: "application/json" }
+  );
+
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+
+  a.href = url;
+
+  a.download = `Conteggi_${cinemaName}.json`;
+
+  a.click();
+
+  URL.revokeObjectURL(url);
 
 }
 function exportConfigBackup() {
