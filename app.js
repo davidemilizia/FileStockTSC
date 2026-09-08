@@ -269,6 +269,29 @@ document.addEventListener("DOMContentLoaded", () => {
   loadCountsFromStorage();
   updateHeaderTitle();
   injectExcelTemplateButton();
+   setTimeout(() => {
+
+  const toolbar =
+    document.querySelector(".toolbar");
+
+  if (!toolbar) return;
+
+  toolbar.insertAdjacentHTML(
+    "beforeend",
+    `
+    <button class="btn btn-success"
+            onclick="exportCountsBackup()">
+      📥 Scarica Conteggi
+    </button>
+
+    <button class="btn btn-warning"
+            onclick="exportConfigBackup()">
+      ⚙️ Scarica Configurazione
+    </button>
+    `
+  );
+
+}, 500);
   const bottomExportBtns = document.querySelectorAll("button[onclick*='export'], .btn-export");
   bottomExportBtns.forEach(btn => btn.remove());
   if ($("magFile")) {
