@@ -248,7 +248,15 @@
 </button>
 
 </div>
-      
+ <input type="file"
+       id="importCountsFile"
+       style="display:none"
+       onchange="importCountsBackup(this)">
+
+<input type="file"
+       id="importConfigFile"
+       style="display:none"
+       onchange="importConfigBackup(this)">     
       <!-- TABELLA DATI CON SCROLL VERTICALE E HEADER FISSO -->
       <div class="table-container card">
         <table>
