@@ -1752,7 +1752,241 @@ function exportEmptyTemplateToExcel() {
   html += `</table></body></html>`;
   downloadExcelBlob(html, `Template_Conteggio_${activeMagName.replace(/[^a-zA-Z0-9-_]/g, "_")}.xls`);
 }
+function importCountsBackup(input) {
 
+  const file = input.files[0];
+
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = e => {
+
+    const data =
+      JSON.parse(e.target.result);
+
+    countsData =
+      data.countsData || {};
+
+    candyGridConfigs =
+      data.candyGridConfigs || {};
+
+    postMixGridConfigs =
+      data.postMixGridConfigs || {};
+
+    distributorGridConfigs =
+      data.distributorGridConfigs || {};
+
+    hiddenProducts =
+      data.hiddenProducts || {};
+
+    localStorage.setItem(
+      "inventory_counts",
+      JSON.stringify(countsData)
+    );
+
+    localStorage.setItem(
+      "candy_grid_configs",
+      JSON.stringify(candyGridConfigs)
+    );
+
+    localStorage.setItem(
+      "postmix_grid_configs",
+      JSON.stringify(postMixGridConfigs)
+    );
+
+    localStorage.setItem(
+      "distributor_grid_configs",
+      JSON.stringify(distributorGridConfigs)
+    );
+
+    localStorage.setItem(
+      "hidden_products",
+      JSON.stringify(hiddenProducts)
+    );
+
+    render();
+
+    alert("Conteggi ripristinati");
+
+  };
+
+  reader.readAsText(file);
+
+}
+function importCountsBackup(input) {
+
+  const file = input.files[0];
+
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = e => {
+
+    const data =
+      JSON.parse(e.target.result);
+
+    countsData =
+      data.countsData || {};
+
+    candyGridConfigs =
+      data.candyGridConfigs || {};
+
+    postMixGridConfigs =
+      data.postMixGridConfigs || {};
+
+    distributorGridConfigs =
+      data.distributorGridConfigs || {};
+
+    hiddenProducts =
+      data.hiddenProducts || {};
+
+    localStorage.setItem(
+      "inventory_counts",
+      JSON.stringify(countsData)
+    );
+
+    localStorage.setItem(
+      "candy_grid_configs",
+      JSON.stringify(candyGridConfigs)
+    );
+
+    localStorage.setItem(
+      "postmix_grid_configs",
+      JSON.stringify(postMixGridConfigs)
+    );
+
+    localStorage.setItem(
+      "distributor_grid_configs",
+      JSON.stringify(distributorGridConfigs)
+    );
+
+    localStorage.setItem(
+      "hidden_products",
+      JSON.stringify(hiddenProducts)
+    );
+
+    render();
+
+    alert("Conteggi ripristinati");
+
+  };
+
+  reader.readAsText(file);
+
+}
+function exportConfigBackup() {
+
+  const data = {
+
+    cinemaName,
+
+    warehouses,
+
+    warehouseTypes,
+
+    warehouseProducts,
+
+    size,
+
+    postMixProducts
+
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(data, null, 2)],
+    { type: "application/json" }
+  );
+
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+
+  a.href = url;
+
+  a.download =
+    `Configurazione_${cinemaName}.json`;
+
+  a.click();
+
+  URL.revokeObjectURL(url);
+
+}
+function importConfigBackup(input) {
+
+  const file = input.files[0];
+
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = e => {
+
+    const data =
+      JSON.parse(e.target.result);
+
+    cinemaName =
+      data.cinemaName || cinemaName;
+
+    warehouses =
+      data.warehouses || [];
+
+    warehouseTypes =
+      data.warehouseTypes || {};
+
+    warehouseProducts =
+      data.warehouseProducts || {};
+
+    size =
+      data.size || [];
+
+    postMixProducts =
+      data.postMixProducts || [];
+
+    localStorage.setItem(
+      "cinema_info_name",
+      cinemaName
+    );
+
+    localStorage.setItem(
+      "cinema_warehouses_" + cinemaName,
+      JSON.stringify(warehouses)
+    );
+
+    localStorage.setItem(
+      "warehouse_types_" + cinemaName,
+      JSON.stringify(warehouseTypes)
+    );
+
+    localStorage.setItem(
+      "warehouse_products_" + cinemaName,
+      JSON.stringify(warehouseProducts)
+    );
+
+    localStorage.setItem(
+      "size_data_" + cinemaName,
+      JSON.stringify(size)
+    );
+
+    localStorage.setItem(
+      "postmix_data_" + cinemaName,
+      JSON.stringify(postMixProducts)
+    );
+
+    renderTabs();
+
+    render();
+
+    alert(
+      "Configurazione ripristinata"
+    );
+
+  };
+
+  reader.readAsText(file);
+
+}
 function toggleFilesSection() {
   const sec = $("filesSection");
   if (sec) sec.style.display = (sec.style.display === "none") ? "grid" : "none";
