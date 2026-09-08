@@ -138,10 +138,47 @@
       <h3 style="margin-bottom: 10px; font-size: 1.1rem;">Magazzini / Postazioni di Conteggio:</h3>
       <div id="whList" style="margin-top: 10px; max-width: 600px;"></div>
 
-      <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-        <button class="btn btn-secondary" onclick="addWarehouseInput()">➕ Aggiungi Magazzino</button>
-        <button class="btn btn-primary" onclick="saveWarehousesSetup()">💾 Salva e Prosegui al Caricamento File</button>
-      </div>
+    <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;">
+
+  <button class="btn btn-secondary" onclick="addWarehouseInput()">
+    ➕ Aggiungi Magazzino
+  </button>
+
+  <button class="btn btn-primary" onclick="saveWarehousesSetup()">
+    💾 Salva e Prosegui
+  </button>
+
+  <button class="btn btn-success" onclick="exportCountsBackup()">
+    📥 Scarica Conteggi
+  </button>
+
+  <input
+    type="file"
+    id="importCountsFile"
+    style="display:none"
+    onchange="importCountsBackup(this)">
+
+  <button class="btn btn-success"
+          onclick="document.getElementById('importCountsFile').click()">
+    📤 Carica Conteggi
+  </button>
+
+  <button class="btn btn-warning" onclick="exportConfigBackup()">
+    ⚙️ Scarica Configurazione
+  </button>
+
+  <input
+    type="file"
+    id="importConfigFile"
+    style="display:none"
+    onchange="importConfigBackup(this)">
+
+  <button class="btn btn-warning"
+          onclick="document.getElementById('importConfigFile').click()">
+    ⚙️ Carica Configurazione
+  </button>
+
+</div>
     </section>
 
     <!-- SEZIONE CARICAMENTO FILE -->
