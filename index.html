@@ -248,17 +248,47 @@
     👀 Mostra Nascosti
   </button>
 
-  <button id="resetBtn"
-          class="btn btn-warning"
-          onclick="resetCounts()">
-      🧹 Azzera Conteggi
-  </button>
+<button id="resetBtn"
+        class="btn btn-warning"
+        onclick="resetCounts()">
+    🧹 Azzera Conteggi
+</button>
 
-  <button id="exportBtn"
-          class="btn btn-success"
-          onclick="exportToExcel()">
-      📊 Esporta in Excel
-  </button>
+<button class="btn btn-success"
+        onclick="exportCountsBackup()">
+    📥 Scarica Conteggi
+</button>
+
+<input type="file"
+       id="importCountsFile"
+       style="display:none"
+       onchange="importCountsBackup(this)">
+
+<button class="btn btn-success"
+        onclick="document.getElementById('importCountsFile').click()">
+    📤 Carica Conteggi
+</button>
+
+<button class="btn btn-warning"
+        onclick="exportConfigBackup()">
+    ⚙️ Scarica Configurazione
+</button>
+
+<input type="file"
+       id="importConfigFile"
+       style="display:none"
+       onchange="importConfigBackup(this)">
+
+<button class="btn btn-warning"
+        onclick="document.getElementById('importConfigFile').click()">
+    ⚙️ Carica Configurazione
+</button>
+
+<button id="exportBtn"
+        class="btn btn-success"
+        onclick="exportToExcel()">
+    📊 Esporta in Excel
+</button>
 
 </div>
       
