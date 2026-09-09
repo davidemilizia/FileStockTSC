@@ -2481,7 +2481,7 @@ function parseMag(m) {
     const rawCode = text(r[1]).trim();
     const code = cleanCode(rawCode);
     const iniziale = n(r[5]);
-     const carichi = n(r[8]) + n(r[11]) + n(r[14]);
+     const carichi = n(r[8]) + n(r[10]) + n(r[12]);
     const danni = n(r[14]);
     const venduto = n(r[18]) + n(r[19]);
     let atteso = n(r[23]);
