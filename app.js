@@ -1900,8 +1900,188 @@ function exportConfigBackup() {
   a.click();
 
   URL.revokeObjectURL(url);
+}
+function exportSizeCheckReport() {
+
+  if (!rows || rows.length === 0) {
+
+    alert("Nessun dato caricato.");
+    return;
+
+  }
+
+  let html = `
+  <html xmlns:o="urn:schemas-microsoft-com:office:office"
+        xmlns:x="urn:schemas-microsoft-com:office:excel">
+
+  <head>
+    <meta charset="utf-8">
+
+    <style>
+
+      body{
+        font-family:Segoe UI,Arial,sans-serif;
+      }
+
+      table{
+        border-collapse:collapse;
+        width:100%;
+      }
+
+      th{
+        background:#1a237e;
+        color:white;
+        border:1px solid #999;
+        padding:6px;
+      }
+
+      td{
+        border:1px solid #ccc;
+        padding:6px;
+      }
+
+      .ok{
+        background:#c8e6c9;
+      }
+
+      .boxMissing{
+        background:#ffccbc;
+      }
+
+      .sleeveMissing{
+        background:#fff9c4;
+      }
+
+      .bothMissing{
+        background:#ffcdd2;
+        font-weight:bold;
+      }
+
+    </style>
+
+  </head>
+
+  <body>
+
+  <h2>
+    Verifica Anagrafica SIZE - ${esc(cinemaName)}
+  </h2>
+
+  <table>
+
+    <tr>
+      <th>Codice</th>
+      <th>Prodotto</th>
+      <th>U.M.</th>
+      <th>BOX SIZE</th>
+      <th>SLEEVE SIZE</th>
+      <th>STATO</th>
+    </tr>
+  `;
+
+  let ok = 0;
+  let boxMissing = 0;
+  let sleeveMissing = 0;
+  let bothMissing = 0;
+
+  rows.forEach(r => {
+
+    const hasBox =
+      n(r.boxSize) > 0;
+
+    const hasSleeve =
+      n(r.sleeveSize) > 0;
+
+    let cssClass = "";
+    let stato = "";
+
+    if (!hasBox && !hasSleeve) {
+
+      cssClass = "bothMissing";
+      stato = "BOX + SLEEVE MANCANTI";
+      bothMissing++;
+
+    }
+
+    else if (!hasBox) {
+
+      cssClass = "boxMissing";
+      stato = "BOX MANCANTE";
+      boxMissing++;
+
+    }
+
+    else if (!hasSleeve) {
+
+      cssClass = "sleeveMissing";
+      stato = "SLEEVE MANCANTE";
+      sleeveMissing++;
+
+    }
+
+    else {
+
+      cssClass = "ok";
+      stato = "OK";
+      ok++;
+
+    }
+
+    html += `
+      <tr class="${cssClass}">
+        <td>${esc(r.code)}</td>
+        <td>${esc(r.name)}</td>
+        <td>${esc(r.uom)}</td>
+        <td>${r.boxSize || 0}</td>
+        <td>${r.sleeveSize || 0}</td>
+        <td>${stato}</td>
+      </tr>
+    `;
+
+  });
+
+  html += `
+  </table>
+
+  <br>
+
+  <h3>Riepilogo</h3>
+
+  <table style="width:400px">
+
+    <tr>
+      <td>✅ Completi</td>
+      <td>${ok}</td>
+    </tr>
+
+    <tr>
+      <td>🟠 BOX Mancanti</td>
+      <td>${boxMissing}</td>
+    </tr>
+
+    <tr>
+      <td>🟡 Sleeve Mancanti</td>
+      <td>${sleeveMissing}</td>
+    </tr>
+
+    <tr>
+      <td>🔴 Entrambi Mancanti</td>
+      <td>${bothMissing}</td>
+    </tr>
+
+  </table>
+
+  </body>
+  </html>
+  `;
+
+  downloadExcelBlob(
+    html,
+    `Verifica_SIZE_${cinemaName}.xls`
+  );
 
 }
+
 function importConfigBackup(input) {
 
   const file = input.files[0];
