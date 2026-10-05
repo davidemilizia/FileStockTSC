@@ -1300,12 +1300,10 @@ function renderDistributorsView() {
           </table>
         </div>
 
-        <div style="margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
-          <button style="background:#8e44ad; color:white; border:none; padding:4px 10px; font-size:0.75rem; border-radius:4px; cursor:pointer; font-weight:bold;" 
-                  onclick="addDistributorRow(${dIdx})">
-            ➕ Aggiungi Prodotto
-          </button>
-        </div>
+<div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+  <button style="background:#8e44ad;color:white;border:none;padding:4px 10px;font-size:0.75rem;border-radius:4px;cursor:pointer;font-weight:bold;" onclick="addDistributorRow(${dIdx})">➕ Aggiungi Prodotto</button>
+  <button style="background:#2980b9;color:white;border:none;padding:4px 10px;font-size:0.75rem;border-radius:4px;cursor:pointer;font-weight:bold;" onclick="rolloverDistributor(${dIdx})">🔄 Conta Finale → Stock Iniziale</button>
+</div>
 
       </div>`;
   });
