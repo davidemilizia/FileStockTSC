@@ -1413,6 +1413,31 @@ function removeDistributorRow(dIdx, rIdx) {
   }
 }
 
+function rolloverDistributor(dIdx) {
+  const cfg = getActiveCinemaDistributorConfig();
+  const dist = cfg.distributors?.[dIdx];
+  if (!dist) return;
+
+  if (!confirm(`Vuoi iniziare un nuovo giro per "${dist.name}"?\n\nLa Conta Finale sarà copiata nello Stock Iniziale. Gli inserimenti e la Conta Finale saranno azzerati.`)) return;
+
+  (dist.rows || []).forEach(row => {
+    row.stockIniziale = row.contaFinale !== "" && row.contaFinale !== null && row.contaFinale !== undefined ? n(row.contaFinale) : 0;
+    row.insertions = [];
+    row.ins = ["", "", "", "", ""];
+    row.contaFinale = "";
+  });
+
+  dist.date = new Date().toLocaleDateString("it-IT");
+
+  saveDistributorConfig();
+  syncDistributorsToGlobalStock();
+  renderDistributorsView();
+
+  if (typeof recalcKPIs === "function") recalcKPIs();
+
+  alert(`Nuovo giro avviato per "${dist.name}".`);
+}
+
 function syncDistributorsToGlobalStock() {
   const cfg = getActiveCinemaDistributorConfig();
   if (!cfg || !cfg.distributors) return;
