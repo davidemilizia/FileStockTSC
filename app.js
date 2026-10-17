@@ -1678,27 +1678,36 @@ function exportDistributorsExcel(isEmpty) {
     </head>
     <body>
       <table>
-        <tr><td colspan="10" class="title-row">SCHEDA DISTRIBUTORI AUTOMATICI — ${esc(cinemaName)} ${isEmpty ? '(TEMPLATE VUOTO)' : '(CONTEGGI)'}</td></tr>
+        <tr><td colspan="12" class="title-row">SCHEDA DISTRIBUTORI AUTOMATICI — ${esc(cinemaName)} ${isEmpty ? '(TEMPLATE VUOTO)' : '(CONTEGGI)'}</td></tr>
       </table>
   `;
   cfg.distributors.forEach(d => {
     html += `
       <table>
-        <tr><td colspan="10" class="dist-header">${esc(d.name)} — Data: ${d.date || ''} — Fondo Resti: €${d.fondoResti || 0}</td></tr>
+        <tr><td colspan="12" class="dist-header">${esc(d.name)} — Data: ${d.date || ''} — Fondo Resti: €${d.fondoResti || 0}</td></tr>
         <tr>
-          <th>Prodotto</th><th>Stock Iniziale</th><th>Ins 1</th><th>Ins 2</th><th>Ins 3</th><th>Ins 4</th><th>Ins 5</th><th>Conta Finale</th><th>Prezzo Vendita</th><th>Incasso</th>
+          <th>Prodotto</th><th>Stock Iniziale</th><th>Ins 1</th><th>Ins 2</th><th>Ins 3</th><th>Ins 4</th><th>Ins 5</th><th>Somma inserimenti</th><th>Conta Finale</th><th>Venduto</th><th>Prezzo Vendita</th><th>Incasso</th>
         </tr>
     `;
     d.rows.forEach(r => {
       if (r.product || isEmpty) {
+        const insertions = Array.isArray(r.insertions) ? r.insertions : (Array.isArray(r.ins) ? r.ins : []);
+        const stockIniziale = n(r.stockIniziale);
+        const sommaInserimenti = stockIniziale + insertions.reduce((totale, valore) => totale + n(valore), 0);
+        const contaFinale = n(r.contaFinale);
+        const venduto = Math.max(0, sommaInserimenti - contaFinale);
+        const incasso = venduto * n(r.prezzoVendita);
+
         html += `
           <tr>
             <td style="text-align:left; font-weight:bold;">${esc(r.product)}</td>
             <td>${isEmpty ? '' : r.stockIniziale}</td>
-            ${Array(5).fill(0).map((_, i) => `<td>${isEmpty ? '' : (r.ins?.[i] || '')}</td>`).join('')}
+            ${Array(5).fill(0).map((_, i) => `<td>${isEmpty ? '' : (insertions[i] ?? '')}</td>`).join('')}
+            <td style="font-weight:bold; background:#FFF2CC;">${isEmpty ? '' : fmt(sommaInserimenti)}</td>
             <td style="font-weight:bold; background:#F5EEF8;">${isEmpty ? '' : r.contaFinale}</td>
+            <td style="font-weight:bold; color:#c0392b; background:#FADBD8;">${isEmpty ? '' : fmt(venduto)}</td>
             <td>${isEmpty ? '' : (r.prezzoVendita ? '€ ' + r.prezzoVendita : '')}</td>
-            <td style="font-weight:bold; color:#1e8449;">${isEmpty ? '' : '€ ' + fmtMoney(Math.max(0, n(r.stockIniziale) + (r.ins || []).reduce((a,v) => a + n(v), 0) - n(r.contaFinale)) * n(r.prezzoVendita))}</td>
+            <td style="font-weight:bold; color:#1e8449; background:#D4EFDF;">${isEmpty ? '' : '€ ' + fmtMoney(incasso)}</td>
           </tr>
         `;
       }
